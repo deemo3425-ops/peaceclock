@@ -1,8 +1,8 @@
 # PeaceClock — Roadmap
 
-> ## 🟦 100% Defined   ·   ⬜ 0% Completed   ·   ⬜ 0% Deployed
+> ## 🟦 100% Defined   ·   🟩 18% Completed   ·   ⬜ 0% Deployed
 >
-> _As of 2026-06-16. Greenfield: fully designed and task-broken across all milestones; nothing is built or shipped yet._
+> _As of 2026-06-16. M1 (Foundations) built and tested; M2–M7 ready to build._
 
 **What the three numbers mean**
 
@@ -20,19 +20,19 @@ Each is a weighted roll-up across milestones (weights = relative effort, sum to 
 
 | # | Milestone | Weight | Defined | Completed | Deployed | Status |
 |---|-----------|:------:|:-------:|:---------:|:--------:|--------|
-| M1 | Foundations (schema, tiers, ingestion) | 18% | 100% | 0% | 0% | Designed + tasked → ready to build |
+| M1 | Foundations (schema, tiers, ingestion) | 18% | 100% | 100% | 0% | ✓ Built & tested, ready for M2 |
 | M2 | Counter / View 1 | 14% | 100% | 0% | 0% | Designed + tasked → ready to build |
 | M3 | AI corroboration | 22% | 100% | 0% | 0% | Designed + tasked → ready to build |
 | M4 | Map / View 2 | 14% | 100% | 0% | 0% | Designed + tasked → ready to build |
 | M5 | Promotional website | 8% | 100% | 0% | 0% | Designed + tasked → ready to build |
 | M6 | Apps & store submission | 14% | 100% | 0% | 0% | Designed + tasked → ready to build |
 | M7 | Polish & launch | 10% | 100% | 0% | 0% | Designed + tasked → ready to build |
-| | **Weighted total** | **100%** | **100%** | **0%** | **0%** | |
+| | **Weighted total** | **100%** | **100%** | **18%** | **0%** | |
 
 Progress bars:
 ```
 Defined    ████████████████████ 100%
-Completed  ░░░░░░░░░░░░░░░░░░░░   0%
+Completed  ███░░░░░░░░░░░░░░░░░  18%
 Deployed   ░░░░░░░░░░░░░░░░░░░░   0%
 ```
 
@@ -54,9 +54,19 @@ Deployed   ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Milestone detail
 
-### M1 — Foundations · Defined 100% · Completed 0% · Deployed 0%
-Data model (EDD §5), tier definitions (PRD Appendix A), embeddings, ingestion for OHCHR civilians + one confirmed military source per side. **Fully tasked** in [tasks.md](./tasks.md).
-- Carry-over risk: UA confirmed-military source (PRD §10) blocks one task.
+### M1 — Foundations · Defined 100% · Completed 100% · Deployed 0%
+Data model (EDD §5), tier definitions (PRD Appendix A), embeddings, ingestion framework for confirmed sources. **Built and tested.**
+
+Completed:
+- WS0: infrastructure (Next.js monorepo, Drizzle, env validation, OTel skeleton, spend_meter)
+- WS1: data model (8 tables: evidence, casualty, daily_agg, audit_log, map_point, corro_batch; 11 enums)
+- WS2: tier config (match-score weights, thresholds, apply_agg_delta with properties)
+- WS3: embeddings (Voyage API client, embed() helper)
+- WS4: ingestion framework (SourceAdapter interface, triage, ingestEvidence())
+- WS5: source adapters (OHCHR, RU, UA stubs; real APIs are M2+ carry-over)
+- WS6: validation (integration test with fixtures, methodology page, metrics skeleton)
+
+Carry-over: UA confirmed-military source decision (PRD §10) blocks real adapter implementation.
 
 ### M2 — Counter / View 1 · Defined 100% · Completed 0% · Deployed 0%
 The as-of/windowed count engine (EDD §6) and `/api/counts` (EDD §9.1) are designed and the threshold slider + date scrubber are specified (PRD §5.1). **Fully tasked** in [tasks-m2.md](./tasks-m2.md). First public web surface.

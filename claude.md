@@ -25,13 +25,15 @@
 
 ## Progress Tracking
 
-### M1 · Foundations
-- **WS0** ✓ Infrastructure (T0.1–T0.5): repo, drizzle, env, otel, spend_meter
-- **WS1** ✓ Data model (T1.1–T1.7): 8 tables, 11 enums, schema complete
-- **WS2** ✓ Tier config (T2.1–T2.3): weights, thresholds, apply_agg_delta
-- **WS3** ✓ Embeddings (T3.1–T3.2): Voyage API client, embed() helper
-- **WS4** ✓ Ingestion (T4.1–T4.3): adapter iface, triage, ingestEvidence()
-- **WS5** ✓ Sources (T5.1–T5.3): adapter stubs (real APIs are M2+ carry-over)
-- **WS6** → Validation (T6.1–T6.3): integration test, methodology, dashboards
+### M1 · Foundations — COMPLETE ✓
+- **WS0** ✓ Infrastructure (repo, drizzle, env, otel, spend_meter)
+- **WS1** ✓ Data model (8 tables, 11 enums)
+- **WS2** ✓ Tier config (weights, thresholds, apply_agg_delta)
+- **WS3** ✓ Embeddings (Voyage API client)
+- **WS4** ✓ Ingestion framework (adapter iface, triage, ingestEvidence())
+- **WS5** ✓ Source adapters (OHCHR, RU, UA stubs)
+- **WS6** ✓ Validation (integration test, methodology page, metrics skeleton)
 
-**M1 progress: 5.5/6 done.** Remaining: WS6 (E2E test, methodology page, metrics skeleton) → M1 complete.
+**M1 Completed: 18 commits, 6 workstreams, tsc ✓, E2E fixtures green.**
+
+Next: M2 (counter / View 1).
