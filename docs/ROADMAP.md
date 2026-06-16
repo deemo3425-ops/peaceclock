@@ -1,0 +1,93 @@
+# PeaceClock — Roadmap
+
+> ## 🟦 100% Defined   ·   ⬜ 0% Completed   ·   ⬜ 0% Deployed
+>
+> _As of 2026-06-16. Greenfield: fully designed and task-broken across all milestones; nothing is built or shipped yet._
+
+**What the three numbers mean**
+
+| Metric | Definition |
+|---|---|
+| **Defined** | Requirements + design + task breakdown exist and are reviewed (PRD / EDD / tasks.md). |
+| **Completed** | Implemented, tested, and merged to `main`. |
+| **Deployed** | Live to users on its target surface(s) — web served, or app live in its store. |
+
+Each is a weighted roll-up across milestones (weights = relative effort, sum to 100%). A milestone can be fully *defined* while 0% *completed*; a milestone is only *deployed* once its surface is live.
+
+---
+
+## Top-line by milestone
+
+| # | Milestone | Weight | Defined | Completed | Deployed | Status |
+|---|-----------|:------:|:-------:|:---------:|:--------:|--------|
+| M1 | Foundations (schema, tiers, ingestion) | 18% | 100% | 0% | 0% | Designed + tasked → ready to build |
+| M2 | Counter / View 1 | 14% | 100% | 0% | 0% | Designed + tasked → ready to build |
+| M3 | AI corroboration | 22% | 100% | 0% | 0% | Designed + tasked → ready to build |
+| M4 | Map / View 2 | 14% | 100% | 0% | 0% | Designed + tasked → ready to build |
+| M5 | Promotional website | 8% | 100% | 0% | 0% | Designed + tasked → ready to build |
+| M6 | Apps & store submission | 14% | 100% | 0% | 0% | Designed + tasked → ready to build |
+| M7 | Polish & launch | 10% | 100% | 0% | 0% | Designed + tasked → ready to build |
+| | **Weighted total** | **100%** | **100%** | **0%** | **0%** | |
+
+Progress bars:
+```
+Defined    ████████████████████ 100%
+Completed  ░░░░░░░░░░░░░░░░░░░░   0%
+Deployed   ░░░░░░░░░░░░░░░░░░░░   0%
+```
+
+---
+
+## Deployment by surface
+
+"Deployed" is multi-surface (PRD §5.3). None are live yet.
+
+| Surface | Target milestone | Deployed |
+|---|---|:---:|
+| Web app | M2 (counter) → M4 (map) | ⬜ 0% |
+| Promotional website | M5 | ⬜ 0% |
+| Apple App Store (iOS/iPadOS) | M6 | ⬜ 0% |
+| Google Play (Android) | M6 | ⬜ 0% |
+| Mac App Store (macOS) | M6 | ⬜ 0% |
+
+---
+
+## Milestone detail
+
+### M1 — Foundations · Defined 100% · Completed 0% · Deployed 0%
+Data model (EDD §5), tier definitions (PRD Appendix A), embeddings, ingestion for OHCHR civilians + one confirmed military source per side. **Fully tasked** in [tasks.md](./tasks.md).
+- Carry-over risk: UA confirmed-military source (PRD §10) blocks one task.
+
+### M2 — Counter / View 1 · Defined 100% · Completed 0% · Deployed 0%
+The as-of/windowed count engine (EDD §6) and `/api/counts` (EDD §9.1) are designed and the threshold slider + date scrubber are specified (PRD §5.1). **Fully tasked** in [tasks-m2.md](./tasks-m2.md). First public web surface.
+- Carry-over risk: wounded/missing categories may ship empty pending M1 source coverage; AI-corroborated slider stop is data-less until M3.
+
+### M3 — AI corroboration · Defined 100% · Completed 0% · Deployed 0%
+Match-score thresholds (PRD Appendix A), the batch worker (EDD §8.1), and cost controls (PRD §12) are specified to implementation depth. **Fully tasked** in [tasks-m3.md](./tasks-m3.md). Highest-risk milestone — `writeOutcome` and worker resumability are the long poles.
+- Carry-over risk: threshold/cap values are v1 starting points (tunable); audit staffing assumed (PRD §10); multilingual scoring on Cyrillic source text to validate.
+
+### M4 — Map / View 2 · Defined 100% · Completed 0% · Deployed 0%
+`ST_ClusterDBSCAN` clustering + `/api/map` (EDD §9.3) and the web MapLibre client (EDD §9.4) specified to implementation depth. **Fully tasked** in [tasks-m4.md](./tasks-m4.md). Completes the two-view web product.
+- Carry-over risk: tile provider choice (EDD §14) blocks final map config; web↔native cluster parity confirmed in M6.
+
+### M5 — Promotional website · Defined 100% · Completed 0% · Deployed 0%
+Marketing site + live counter + methodology/about/funding + store badges. **Fully tasked** in [tasks-m5.md](./tasks-m5.md).
+- Carry-over risk: store links "coming soon" until M6; funding disclosure content needed from owner.
+
+### M6 — Apps & store submission · Defined 100% · Completed 0% · Deployed 0%
+Expo/RN clients (iOS, Android), MapLibre Native, macOS via the iPad-app path, EAS build/submit, store compliance. **Fully tasked** in [tasks-m6.md](./tasks-m6.md).
+- Carry-over risk: store **review** is the long pole (sensitive-content framing); macOS fidelity is iPad-app for v1.
+
+### M7 — Polish & launch · Defined 100% · Completed 0% · Deployed 0%
+Performance, accessibility, offline, observability, security, and coordinated multi-surface launch consolidated. **Fully tasked** in [tasks-m7.md](./tasks-m7.md).
+- Carry-over risk: app-store approvals gate the app portion of launch; web/promo can launch independently.
+
+---
+
+## How these numbers move
+
+- **Defined = 100%** — all milestones (M1–M7) are task-broken. Next step is execution: start M1 (`tasks.md`) and advance **Completed**.
+- **Completed** advances as tasks merge to `main` with tests green; it rolls up from per-task completion within each milestone.
+- **Deployed** advances per surface: web first (M2/M4), then promo site (M5), then the three app stores (M6). Store review is the long pole for app deployment.
+
+> Update cadence: revise the three top-line numbers whenever a milestone's defined/completed state changes or a surface deploys. Keep the leading line authoritative — it's the one thing read at a glance.

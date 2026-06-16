@@ -1,0 +1,20 @@
+{
+  "name": "peaceclock",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Confirmed casualty tracker for the war in Ukraine",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r dev",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
