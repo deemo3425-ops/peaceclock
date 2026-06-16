@@ -30,6 +30,6 @@
 - **WS1** ✓ Data model (T1.1–T1.7): 8 tables, 11 enums, schema complete
 - **WS2** ✓ Tier config (T2.1–T2.3): weights, thresholds, apply_agg_delta
 - **WS3** ✓ Embeddings (T3.1–T3.2): Voyage API client, embed() helper
-- **WS4** → Ingestion (T4.1–T4.3): adapter iface, triage, official short-circuit
-- **WS5** → Sources (T5.1–T5.3): OHCHR + RU + UA adapters
+- **WS4** ✓ Ingestion (T4.1–T4.3): adapter iface, triage, ingestEvidence()
+- **WS5** → Sources (T5.1–T5.3): OHCHR backfill + RU + UA adapters
 - **WS6** → Validation (T6.1–T6.3): integration test, methodology, dashboards
