@@ -22,3 +22,13 @@
 2. User says "ok".
 3. I update this file to lock in the decision/workflow change.
 4. Everything is trackable via test files and type checks.
+
+## Progress Tracking
+
+### M1 · Foundations
+- **T0.1** ✓ Repo + app scaffold (Next.js 15, pnpm monorepo, api-types stub, tsc passing)
+- **T0.2** → Neon + pgvector/PostGIS (DATABASE_URL in .env)
+- **T0.3** → Migration tooling (drizzle-kit picked)
+- **T0.4** → Secrets & env validation
+- **T0.5** → OTel baseline + spend_meter table
+- **WS1** → Data model migrations (evidence, casualty, daily_agg, audit_log, map_point, corro_batch)

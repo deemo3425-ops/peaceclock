@@ -1,0 +1,21 @@
+{
+  "name": "@peaceclock/db",
+  "version": "0.0.1",
+  "description": "PeaceClock database schema and utilities",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "migrate": "drizzle-kit migrate",
+    "migrate:generate": "drizzle-kit generate:pg",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "drizzle-orm": "workspace:*",
+    "postgres": "workspace:*"
+  },
+  "devDependencies": {
+    "drizzle-kit": "workspace:*",
+    "typescript": "^5.3.0"
+  }
+}
