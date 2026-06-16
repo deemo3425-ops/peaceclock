@@ -26,10 +26,7 @@
 ## Progress Tracking
 
 ### M1 · Foundations
-- **T0.1** ✓ Repo + app scaffold (Next.js 15, pnpm monorepo, api-types stub, tsc passing)
-- **T0.2–T0.3** ✓ Drizzle-kit + schema/migrations (packages/db, vector type, tsc passing)
-- **T0.4** → Env validation at app boot
-- **T0.5** → OTel + spend_meter table
-- **WS1** → Full data model schemas (evidence, casualty, daily_agg, audit_log, map_point, corro_batch)
-- **WS2** → tiering.config + apply_agg_delta function
+- **WS0** ✓ Infrastructure (T0.1–T0.5): repo, drizzle, env, otel, spend_meter
+- **WS1** → Data model (T1.1–T1.7): enums, evidence, casualty, daily_agg, audit_log, map_point, corro_batch
+- **WS2** → tiering.config + apply_agg_delta (T2.1–T2.3)
 - **WS3–WS6** → Embeddings, ingestion, validation
