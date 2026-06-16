@@ -27,8 +27,9 @@
 
 ### M1 · Foundations
 - **T0.1** ✓ Repo + app scaffold (Next.js 15, pnpm monorepo, api-types stub, tsc passing)
-- **T0.2** → Neon + pgvector/PostGIS (DATABASE_URL in .env)
-- **T0.3** → Migration tooling (drizzle-kit picked)
-- **T0.4** → Secrets & env validation
-- **T0.5** → OTel baseline + spend_meter table
-- **WS1** → Data model migrations (evidence, casualty, daily_agg, audit_log, map_point, corro_batch)
+- **T0.2–T0.3** ✓ Drizzle-kit + schema/migrations (packages/db, vector type, tsc passing)
+- **T0.4** → Env validation at app boot
+- **T0.5** → OTel + spend_meter table
+- **WS1** → Full data model schemas (evidence, casualty, daily_agg, audit_log, map_point, corro_batch)
+- **WS2** → tiering.config + apply_agg_delta function
+- **WS3–WS6** → Embeddings, ingestion, validation
