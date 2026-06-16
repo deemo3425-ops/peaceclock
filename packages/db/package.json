@@ -11,11 +11,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "drizzle-orm": "workspace:*",
-    "postgres": "workspace:*"
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9"
   },
   "devDependencies": {
-    "drizzle-kit": "workspace:*",
     "typescript": "^5.3.0"
   }
 }
