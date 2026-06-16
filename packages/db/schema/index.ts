@@ -51,4 +51,5 @@ export const evidenceTable = pgTable(
   })
 );
 
-// Stub placeholder — full schema in M1·WS1 tasks
+// spend_meter (T0.5, EDD §8.1)
+export { spendMeter } from './spend-meter';

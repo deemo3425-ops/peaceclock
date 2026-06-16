@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import { validateEnv } from '@/lib/env';
+import { initOtel } from '@/lib/otel';
 
-// T0.4: Validate environment at app boot
+// T0.4–T0.5: Validate environment and init OTel at app boot
 if (typeof window === 'undefined') {
   validateEnv();
+  initOtel();
 }
 
 export const metadata: Metadata = {
