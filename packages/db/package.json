@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "migrate": "drizzle-kit migrate",
-    "migrate:generate": "drizzle-kit generate:pg",
+    "migrate:generate": "drizzle-kit generate",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
