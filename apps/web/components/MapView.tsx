@@ -58,6 +58,7 @@ export function MapView({ asOf, threshold, side, category, onPinClick }: Props) 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MLMap | null>(null);
   const [ready, setReady] = useState(false);
+  const [spriteError, setSpriteError] = useState<string | null>(null);
 
   const fetchViewport = useCallback(async () => {
     const map = mapRef.current;
@@ -99,9 +100,27 @@ export function MapView({ asOf, threshold, side, category, onPinClick }: Props) 
       mapRef.current = map;
 
       map.on('load', async () => {
-        await loadMapSprites(map);
+        let spritesLoaded = false;
+        try {
+          await loadMapSprites(map);
+          spritesLoaded = true;
+        } catch (err) {
+          console.error('[MapView] sprite atlas failed to load:', err);
+          if (!cancelled) {
+            setSpriteError('Pin graphics could not load. The map is still available without evidence pins.');
+          }
+        }
 
         map.addSource('pins', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+
+        if (!spritesLoaded) {
+          if (!cancelled) {
+            setReady(true);
+            fetchViewport();
+            map.on('moveend', debounce(fetchViewport, 300));
+          }
+          return;
+        }
 
         // Cluster density disc (PRD §5.3).
         map.addLayer({
@@ -239,11 +258,18 @@ export function MapView({ asOf, threshold, side, category, onPinClick }: Props) 
   useEffect(() => { if (ready) fetchViewport(); }, [ready, fetchViewport]);
 
   return (
-    <div
-      ref={containerRef}
-      className={`mapview${prefersReducedMotion() ? ' mapview--reduced-motion' : ''}`}
-      aria-label="Map of geolocated confirmed evidence"
-      role="application"
-    />
+    <div className="mapview-wrap">
+      {spriteError && (
+        <div className="mapview__sprite-error" role="alert">
+          {spriteError}
+        </div>
+      )}
+      <div
+        ref={containerRef}
+        className={`mapview${prefersReducedMotion() ? ' mapview--reduced-motion' : ''}`}
+        aria-label="Map of geolocated confirmed evidence"
+        role="application"
+      />
+    </div>
   );
 }

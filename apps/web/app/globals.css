@@ -148,7 +148,13 @@ html, body {
 
 /* View 2 — full-screen map */
 .maproot { position: fixed; inset: 0; }
+.mapview-wrap { position: absolute; inset: 0; }
 .mapview { position: absolute; inset: 0; }
+.mapview__sprite-error {
+  position: absolute; z-index: 4; left: .75rem; right: 4.5rem; bottom: .75rem;
+  background: rgba(20, 24, 29, .94); border: 1px solid var(--warn); border-radius: 8px;
+  color: var(--fg); font-size: .85rem; padding: .6rem .85rem;
+}
 .mapview--reduced-motion .maplibregl-canvas { animation: none !important; }
 .maproot__controls {
   position: absolute; z-index: 5; top: .75rem; left: .75rem; right: 4rem;

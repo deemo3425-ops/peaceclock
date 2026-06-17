@@ -112,9 +112,9 @@ export async function loadMapSprites(map: MLMap): Promise<void> {
   }
 }
 
-/** Pin base scale — static under prefers-reduced-motion (no pulse). */
+/** Pin base scale — slightly smaller when motion is reduced (static, no pulse). */
 export function pinIconSize(reducedMotion: ReducedMotion): number {
-  return reducedMotion ? 0.72 : 0.72;
+  return reducedMotion ? 0.68 : 0.72;
 }
 
 interface SpriteFrame {
