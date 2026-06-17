@@ -1,11 +1,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { validateEnv } from '@/lib/env';
 import { initOtel } from '@/lib/otel';
 
-// T0.4–T0.5: Validate environment and init OTel at app boot
+// T0.5: Init OTel at app boot (env validation runs in API routes / data loaders only)
 if (typeof window === 'undefined') {
-  validateEnv();
   initOtel();
 }
 

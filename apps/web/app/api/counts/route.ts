@@ -3,6 +3,8 @@ import type { CountsResponse } from '@peaceclock/api-types';
 import { buildCountsResponse } from '@peaceclock/count-engine';
 import { queryDailyAgg, querySideFreshness, DEFAULT_THEATER, theaterEpoch, isTheaterSlug } from '@peaceclock/db';
 import { Theater } from '@peaceclock/api-types';
+import { validateEnv } from '@/lib/env';
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function today(): string {
@@ -28,6 +30,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<CountsResp
   }
 
   try {
+    validateEnv();
     const [rows, freshness] = await Promise.all([
       queryDailyAgg(from, asOf, theater),
       querySideFreshness(theater),
@@ -39,7 +42,6 @@ export async function GET(request: NextRequest): Promise<NextResponse<CountsResp
       epochStart: epoch,
     });
     return NextResponse.json(body, {
-      // T1.3: immutable past-day aggregates; trailing day revalidated on ingest.
       headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
     });
   } catch (error) {

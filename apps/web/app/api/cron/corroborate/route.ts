@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runTick } from '@peaceclock/db';
+import { authorizeCron, validateEnv } from '@/lib/env';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -10,19 +11,16 @@ export const maxDuration = 300;
  * Authorization: Bearer header on scheduled invocations).
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = request.headers.get('authorization');
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-    }
+  if (!authorizeCron(request)) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
   try {
+    validateEnv();
     await runTick();
     return NextResponse.json({ ok: true, ranAt: new Date().toISOString() });
   } catch (error) {
     console.error('[cron/corroborate] tick failed:', error);
-    return NextResponse.json({ ok: false, error: String(error) }, { status: 500 });
+    return NextResponse.json({ ok: false, error: 'internal error' }, { status: 500 });
   }
 }
