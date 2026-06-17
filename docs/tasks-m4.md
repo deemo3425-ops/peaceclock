@@ -2,7 +2,7 @@
 
 **Milestone:** M4 — Map / View 2 (PRD §5.2; EDD §9.2, §9.3, §9.4)
 **Depends on:** M1 (`map_point`, PostGIS), M3 (pipeline populates `map_point`; corroboration detail in `/api/evidence`, M3·WS8), M2 (shared date/threshold/side/category state; replaces the M2 lightweight backdrop).
-**Goal:** Ship View 2: a full-screen, zoomable/pannable world map of geolocated confirmed evidence, server-clustered, filterable by authentication tier / side / category / date (shared with View 1), with pin detail that exposes the corroboration basis. Completes the two-view web product.
+**Goal:** Ship View 2: a full-screen, zoomable/pannable world map of geolocated confirmed evidence, server-clustered, filterable by **theater** / authentication tier / side / category / date (shared with View 1), with **production pin & cluster graphics** (PRD §5.3) and pin detail that exposes the corroboration basis. Completes the two-view web product (Ukraine-only until M8 selector).
 
 **Exit criteria for M4**
 - `/api/map` returns clustered GeoJSON for a viewport, honoring `asOf`, the tier threshold, and side/category/audience filters (EDD §9.3).
@@ -33,8 +33,8 @@ Legend — size: S ≤0.5d, M ~1–2d, L ~3–5d. Each task lists **deps** and *
   *Acceptance:* each band returns correct shapes; world-zoom (`z<8`) does not run DBSCAN over the full point set (verified by plan/timing).
 
 - **T0.4 — Endpoint + typed payload** (M) — deps: T0.2, T0.3
-  `/api/map?asOf&tiers&side&category&audience&bbox&zoom` → GeoJSON `FeatureCollection`; define the type in `@peaceclock/api-types` (platform-neutral for M6).
-  *Acceptance:* valid GeoJSON; cluster vs singleton features distinguishable; type consumed by the client; `tiers[]` reflects the slider threshold.
+  `/api/map?theater&asOf&threshold&side&category&audience&bbox&zoom` → GeoJSON `FeatureCollection` with `theater` on each feature; `MapResponse.theater` = slug or `all`. Types in `@peaceclock/api-types` (platform-neutral for M6).
+  *Acceptance:* valid GeoJSON; cluster vs singleton distinguishable; `theater` present on properties; `tiers[]` reflects slider threshold.
 
 - **T0.5 — Edge caching** (S) — deps: T0.4
   Cache key `(tile-snapped bbox, z, sorted tiers, side, category, audience, asOf-day)`; immutable past days cached indefinitely; trailing day revalidated (EDD §6/§9.3).
@@ -48,9 +48,13 @@ Legend — size: S ≤0.5d, M ~1–2d, L ~3–5d. Each task lists **deps** and *
   MapLibre GL JS full-screen view; configure the tile provider + base style; default world view; pan/zoom controls.
   *Acceptance:* map renders at all zoom levels; tile provider configurable via env (EDD §14 open question).
 
-- **T1.2 — Cluster & pin rendering** (M) — deps: T1.1, T0.4
-  Render clusters (badge = `n`, color = `dominant_side`, tier badge = `top_tier`) and singleton pins (auth-tier styling; AI-corroborated visually distinct). Symbol layers from the GeoJSON.
-  *Acceptance:* clusters/pins reflect the API; tier and side encodings legible and consistent with View 1.
+- **T1.2 — Pin & cluster sprite system** (L) — deps: T1.1, T0.4, PRD §5.3
+  MapLibre SDF sprite atlas: tier rings (gold/white/cyan/amber dashed), side chroma, provisional badge, cluster density discs, geo-confidence halo. Interim circle glyphs in M2 replaced here.
+  *Acceptance:* ≥90% moderated legibility test (PRD §8); `prefers-reduced-motion` respected; shared asset export path documented for M6.
+
+- **T1.2b — Cluster & pin layer wiring** (M) — deps: T1.2
+  Symbol layers from GeoJSON + sprites; cluster count typography; AI-corroborated stroke distinct.
+  *Acceptance:* clusters/pins reflect API; encodings match PRD §5.3 spec sheet.
 
 - **T1.3 — Viewport-driven fetch + cluster expand** (M) — deps: T1.2
   On pan/zoom (debounced), refetch `/api/map` with the new bbox/zoom; cluster click → `fitBounds(feature.bounds)`.

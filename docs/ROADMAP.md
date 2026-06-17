@@ -1,8 +1,8 @@
 # PeaceClock — Roadmap
 
-> ## 🟦 100% Defined   ·   🟩 18% Completed   ·   ⬜ 0% Deployed
+> ## 🟦 100% Defined   ·   🟩 63% Completed   ·   ⬜ 0% Deployed
 >
-> _As of 2026-06-16. M1 (Foundations) built and tested; M2–M7 ready to build._
+> _As of 2026-06-16. M1–M2 complete; M3–M4 core built & unit-tested (live-infra E2E pending); M5–M7 ready to build._
 
 **What the three numbers mean**
 
@@ -20,19 +20,20 @@ Each is a weighted roll-up across milestones (weights = relative effort, sum to 
 
 | # | Milestone | Weight | Defined | Completed | Deployed | Status |
 |---|-----------|:------:|:-------:|:---------:|:--------:|--------|
-| M1 | Foundations (schema, tiers, ingestion) | 18% | 100% | 100% | 0% | ✓ Built & tested, ready for M2 |
-| M2 | Counter / View 1 | 14% | 100% | 0% | 0% | Designed + tasked → ready to build |
-| M3 | AI corroboration | 22% | 100% | 0% | 0% | Designed + tasked → ready to build |
-| M4 | Map / View 2 | 14% | 100% | 0% | 0% | Designed + tasked → ready to build |
+| M1 | Foundations (schema, tiers, ingestion) | 18% | 100% | 100% | 0% | ✓ Built & tested |
+| M2 | Counter / View 1 | 14% | 100% | 100% | 0% | ✓ Built & tested (needs live DB + E2E in CI) |
+| M3 | AI corroboration | 22% | 100% | 85% | 0% | ◑ Core built & unit-tested; live-infra E2E pending |
+| M4 | Map / View 2 | 14% | 100% | 85% | 0% | ◑ Core built & unit-tested; live tiles/DB E2E pending |
 | M5 | Promotional website | 8% | 100% | 0% | 0% | Designed + tasked → ready to build |
 | M6 | Apps & store submission | 14% | 100% | 0% | 0% | Designed + tasked → ready to build |
 | M7 | Polish & launch | 10% | 100% | 0% | 0% | Designed + tasked → ready to build |
-| | **Weighted total** | **100%** | **100%** | **18%** | **0%** | |
+| M8 | Multi-theater expansion | 0% | 100% | 0% | 0% | PRD §6.8 tasked → [tasks-m8.md](./tasks-m8.md) |
+| | **Weighted total** | **100%** | **100%** | **63%** | **0%** | |
 
 Progress bars:
 ```
 Defined    ████████████████████ 100%
-Completed  ███░░░░░░░░░░░░░░░░░  18%
+Completed  ████████████▌░░░░░░░  63%
 Deployed   ░░░░░░░░░░░░░░░░░░░░   0%
 ```
 
@@ -96,7 +97,7 @@ Performance, accessibility, offline, observability, security, and coordinated mu
 
 ## How these numbers move
 
-- **Defined = 100%** — all milestones (M1–M7) are task-broken. Next step is execution: start M1 (`tasks.md`) and advance **Completed**.
+- **Defined = 100%** — all milestones (M1–M8) are task-broken. M8 is post-launch expansion; M1–M7 are the ship path. Next step is execution: advance **Completed** on remaining M1–M7 carry-overs.
 - **Completed** advances as tasks merge to `main` with tests green; it rolls up from per-task completion within each milestone.
 - **Deployed** advances per surface: web first (M2/M4), then promo site (M5), then the three app stores (M6). Store review is the long pole for app deployment.
 

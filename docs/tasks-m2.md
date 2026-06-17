@@ -2,7 +2,7 @@
 
 **Milestone:** M2 — Counter / View 1 (PRD §11.2, §5.1; EDD §6, §9.1)
 **Depends on:** M1 complete — `daily_agg` + prefix sums populated from real ingestion ([tasks.md](./tasks.md)).
-**Goal:** Ship View 1: a date-controlled, threshold-sliderable counter showing per-side confirmed counts across windows (24h / 7d / 30d / 90d / 1y / total), civilian-primary and military-secondary, every figure linked to a source, over a lightweight world-map background. First public web surface.
+**Goal:** Ship View 1: a **theater-aware** (Ukraine-only data at first ship) date-controlled, threshold-sliderable counter showing per-side confirmed counts across windows (24h / 7d / 30d / 90d / 1y / total), civilian-primary and military-secondary, every figure linked to a source, over a lightweight world-map background. First public web surface. API and engine carry `theater` + `epochStart`; UI selector ships in M8.
 
 **Exit criteria for M2**
 - `/api/counts?asOf=D` returns the per-day tier series; all counts derive from `daily_agg` (no `casualty` scans).
@@ -23,8 +23,8 @@ Legend — size: S ≤0.5d, M ~1–2d, L ~3–5d. Each task lists **deps** and *
 ## WS0 — Count engine (shared, platform-agnostic) — EDD §6
 
 - **T0.1 — Window math library** (M) — deps: M1·T1.4, M1·T2.2
-  Pure TS in the shared logic package: `count(series, asOf D, window W, threshold T) → number`. Windows 24h/7d/30d/90d/1y/total relative to D; window sums via prefix sums; tier-threshold = sum over tiers ≥ T.
-  *Acceptance:* unit tests cover edges — `total = prefix[D]`; window start clamped to `INVASION_START` (2022-02-24); 24h = single day; date-boundary/timezone handling fixed to UTC day; empty range → 0.
+  Pure TS in the shared logic package: `count(series, asOf D, window W, threshold T, theater?, epochStart?) → number`. Windows 24h/7d/30d/90d/1y/total relative to D; `total` clamped to theater `epochStart` (Ukraine: 2022-02-24); tier-threshold = sum over tiers ≥ T; series filtered to one theater.
+  *Acceptance:* unit tests cover edges — `total = prefix[D]`; window start clamped to epoch; 24h = single day; UTC day boundaries; empty range → 0; no cross-theater leakage when series is mixed.
 
 - **T0.2 — As-of semantics** (S) — deps: T0.1
   Enforce `event_date ≤ D` inclusion; document the `event_date` axis choice (EDD §6) and clamp behavior in the module header.
@@ -39,7 +39,7 @@ Legend — size: S ≤0.5d, M ~1–2d, L ~3–5d. Each task lists **deps** and *
 ## WS1 — `/api/counts` — EDD §9.1
 
 - **T1.1 — Endpoint + query** (M) — deps: T0.1, M1·T1.4
-  `/api/counts?asOf=D&from=...&to=...` returns per-day series keyed by `(side, category, audience, tier)` over the visible range, plus prefix totals for `total`. Reads `daily_agg` + prefix sums only.
+  `/api/counts?theater=T&asOf=D&from=...&to=...` returns per-day series keyed by `(theater, side, category, audience, tier)` over the visible range, plus `epochStart`. Reads `daily_agg` filtered by theater only.
   *Acceptance:* output matches the engine on fixtures; `EXPLAIN` shows index use, **no seq scan on `casualty`**.
 
 - **T1.2 — Typed payload in `@peaceclock/api-types`** (S) — deps: T1.1
@@ -75,7 +75,7 @@ Legend — size: S ≤0.5d, M ~1–2d, L ~3–5d. Each task lists **deps** and *
   *Acceptance:* SSR HTML contains the headline numbers with JS disabled; Lighthouse **FCP < 2s** on throttled 3G.
 
 - **T3.2 — Date controller** (M) — deps: T3.1, T0.1
-  Date scrubber/picker defaulting to today; writes URL state (`/c/:date...`, deep-linkable per PRD §5.3); recomputes all cells **client-side** from the fetched series.
+  Date scrubber/picker defaulting to today; writes URL state (`/c/ukraine/:date...` until M8 generalizes to `/c/:theater/:date`, deep-linkable per PRD §5.3); recomputes all cells **client-side** from the fetched series using `epochStart`.
   *Acceptance:* changing date updates every cell with **no extra fetch** within the loaded range; URL reflects state; refresh restores it.
 
 - **T3.3 — Authentication-threshold slider** (M) — deps: T3.1, T0.3

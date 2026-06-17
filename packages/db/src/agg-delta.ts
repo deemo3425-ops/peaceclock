@@ -13,6 +13,7 @@ import { eq, and, sql } from 'drizzle-orm';
 
 export interface AggDelta {
   eventDate: string; // ISO date
+  theater?: 'ukraine';
   side: 'ua_coalition' | 'russia';
   category: 'killed' | 'wounded' | 'missing_pow';
   audience: 'military' | 'civilian';
@@ -27,6 +28,7 @@ export interface AggDelta {
  */
 export async function applyAggDelta(delta: AggDelta): Promise<void> {
   const db = getDb();
+  const theater = delta.theater ?? 'ukraine';
 
   // If there was an old tier, subtract from that cell first
   if (delta.oldTier) {
@@ -37,6 +39,7 @@ export async function applyAggDelta(delta: AggDelta): Promise<void> {
       })
       .where(
         and(
+          eq(dailyAggTable.theater, theater),
           eq(dailyAggTable.day, delta.eventDate),
           eq(dailyAggTable.side, delta.side),
           eq(dailyAggTable.category, delta.category),
@@ -50,6 +53,7 @@ export async function applyAggDelta(delta: AggDelta): Promise<void> {
   await db
     .insert(dailyAggTable)
     .values({
+      theater,
       day: delta.eventDate,
       side: delta.side,
       category: delta.category,
@@ -59,6 +63,7 @@ export async function applyAggDelta(delta: AggDelta): Promise<void> {
     })
     .onConflictDoUpdate({
       target: [
+        dailyAggTable.theater,
         dailyAggTable.day,
         dailyAggTable.side,
         dailyAggTable.category,

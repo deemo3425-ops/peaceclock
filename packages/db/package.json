@@ -8,9 +8,13 @@
     "build": "tsc",
     "migrate": "drizzle-kit migrate",
     "migrate:generate": "drizzle-kit generate:pg",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "@peaceclock/api-types": "workspace:*",
+    "@peaceclock/count-engine": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.9"
   },

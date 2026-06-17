@@ -52,7 +52,7 @@ export function computeMatchScore(
  * Higher score → higher tier (more confident).
  */
 export const TIER_THRESHOLDS = {
-  dedup: 0.9, // exact duplicate candidate
+  dedup: 0.9, // exact duplicate candidate (against an already-counted casualty)
   osint: {
     matchScore: 0.85,
     minCorroborators: 2,
@@ -68,7 +68,25 @@ export const TIER_THRESHOLDS = {
     matchScoreMax: 0.78,
     // If a score lands here, escalate to Opus for human-like judgment.
   },
+  nearDup: {
+    // 0.85 ≤ s < 0.90 against a counted casualty → escalate (rule 5).
+    matchScoreMin: 0.85,
+    matchScoreMax: 0.9,
+  },
 } as const;
+
+/**
+ * Candidate score floor (§A.5 Step 2) — only candidates with s ≥ this count
+ * toward c (corroborators) / k (contradictions).
+ */
+export const SCORE_FLOOR = 0.6;
+
+/**
+ * A contradiction (k ≥ 1) is "clearly outweighed" only when corroborators
+ * exceed contradictions by at least this margin; otherwise escalate (rule 5).
+ * v1 starting value — tune against audit outcomes (T7.4).
+ */
+export const CONTRADICTION_CLEAR_MARGIN = 2;
 
 /**
  * Default monthly AI budget cap (T0.5, M1).

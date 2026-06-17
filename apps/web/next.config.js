@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  experimental: {
-    turbopack: true,
-  },
+  transpilePackages: ['@peaceclock/api-types', '@peaceclock/count-engine', '@peaceclock/db'],
 };
 
 module.exports = nextConfig;

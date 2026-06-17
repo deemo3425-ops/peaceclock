@@ -22,6 +22,7 @@ const vector = customType<{ data: number[] }>({
 });
 
 // Enums (T1.1)
+export const theaterEnum = pgEnum('theater', ['ukraine']); // extend via migration when M8 adds theaters
 export const sideEnum = pgEnum('side', ['ua_coalition', 'russia']);
 export const categoryEnum = pgEnum('category', ['killed', 'wounded', 'missing_pow']);
 export const audienceEnum = pgEnum('audience', ['military', 'civilian']);
@@ -38,6 +39,7 @@ export const evidenceTable = pgTable(
   'evidence',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    theater: theaterEnum('theater').notNull().default('ukraine'),
     kind: evidenceKindEnum('kind').notNull(),
     publisher: text('publisher').notNull(),
     url: text('url'),
@@ -52,7 +54,10 @@ export const evidenceTable = pgTable(
     ingestedAt: timestamp('ingested_at').defaultNow(),
   },
   (table) => ({
-    contentHashUnique: uniqueIndex('idx_evidence_content_hash').on(table.contentHash),
+    contentHashTheaterUnique: uniqueIndex('idx_evidence_theater_content_hash').on(
+      table.theater,
+      table.contentHash,
+    ),
   })
 );
 
@@ -61,6 +66,7 @@ export const casualtyTable = pgTable(
   'casualty',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    theater: theaterEnum('theater').notNull().default('ukraine'),
     side: sideEnum('side').notNull(),
     category: categoryEnum('category').notNull(),
     audience: audienceEnum('audience').notNull(),
@@ -99,6 +105,7 @@ export const dailyAggTable = pgTable(
   'daily_agg',
   {
     day: date('day').notNull(),
+    theater: theaterEnum('theater').notNull().default('ukraine'),
     side: sideEnum('side').notNull(),
     category: categoryEnum('category').notNull(),
     audience: audienceEnum('audience').notNull(),
@@ -106,7 +113,10 @@ export const dailyAggTable = pgTable(
     count: integer('count').notNull().default(0),
   },
   (table) => ({
-    pk: { name: 'pk_daily_agg', columns: [table.day, table.side, table.category, table.audience, table.tier] },
+    pk: {
+      name: 'pk_daily_agg',
+      columns: [table.theater, table.day, table.side, table.category, table.audience, table.tier],
+    },
   })
 );
 
@@ -128,6 +138,7 @@ export const mapPointTable = pgTable(
   'map_point',
   {
     casualtyId: uuid('casualty_id').primaryKey(),
+    theater: theaterEnum('theater').notNull().default('ukraine'),
     evidenceId: uuid('evidence_id').notNull(), // best-geo evidence
     side: sideEnum('side').notNull(),
     category: categoryEnum('category').notNull(),

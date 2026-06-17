@@ -1,0 +1,20 @@
+{
+  "name": "@peaceclock/count-engine",
+  "version": "0.0.1",
+  "description": "Platform-agnostic count engine for PeaceClock — window sums, tier thresholds, as-of semantics",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@peaceclock/api-types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  }
+}

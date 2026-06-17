@@ -105,6 +105,7 @@ export async function ingestEvidence(
   const result = await db
     .insert(evidenceTable)
     .values({
+      theater: 'ukraine',
       kind: evidence.kind,
       publisher: evidence.publisher,
       url: evidence.url,

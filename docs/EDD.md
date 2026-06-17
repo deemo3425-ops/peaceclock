@@ -3,14 +3,14 @@
 **Status:** Draft
 **Author:** David Morgan (eng)
 **Branding & Design:** New Florence Interactive, an LLC
-**Last updated:** 2026-06-16
+**Last updated:** 2026-06-16 (theater dimension + map pin graphics)
 **Companion:** [PRD.md](./PRD.md) — product requirements this design implements.
 
 ---
 
 ## 1. Scope
 
-This EDD describes how we build PeaceClock as specified in the PRD: a confirmed-only, two-view (date-controlled counter + full-screen map) casualty tracker for the war in Ukraine, with per-side/per-window counts, four authentication tiers, a user-movable threshold, and an AI corroboration layer (Haiku 4.5 → Opus 4.8 escalation). It covers architecture, data model, the as-of/windowed query engine, the ingestion + AI pipeline, the map, audit, cost controls, and operational concerns. It does **not** re-argue product decisions — those are settled in the PRD.
+This EDD describes how we build PeaceClock as specified in the PRD: a confirmed-only, **multi-theater**, two-view (date-controlled counter + full-screen map) casualty tracker. **Launch theater:** Ukraine; additional theaters ship via versioned config + enum extension (PRD §6.8, M8). Each theater has its own sides, epoch start date, source adapters, and methodology — never blended in aggregates or headlines. The product includes per-side/per-window counts, four authentication tiers, a user-movable threshold, distinctive map pin/cluster graphics (PRD §5.3), and an AI corroboration layer (Haiku 4.5 → Opus 4.8 escalation). It covers architecture, data model, the as-of/windowed query engine, the ingestion + AI pipeline, the map, audit, cost controls, and operational concerns. It does **not** re-argue product decisions — those are settled in the PRD.
 
 ## 2. Engineering goals & non-goals
 
@@ -78,19 +78,38 @@ This EDD describes how we build PeaceClock as specified in the PRD: a confirmed-
 
 ## 5. Data model
 
-Append-only at the core; aggregates are derived and rebuildable.
+Append-only at the core; aggregates are derived and rebuildable. Every query path carries an explicit **`theater`** dimension (PRD §6.8) — no cross-theater joins in counts, candidate retrieval, or audit queues.
+
+### 5.0 Theater config (`theater.config.ts`)
+
+Theaters are **not** hard-coded only in the DB enum. A versioned TS registry (`packages/db/src/theater.config.ts`) holds per-theater metadata:
+
+```
+TheaterConfig {
+  slug            text,           -- e.g. 'ukraine' (matches DB enum)
+  displayName     text,
+  epochStart      date,           -- clamps "total" window (Ukraine: 2022-02-24)
+  bounds          {west,south,east,north},  -- default map framing
+  sides[]         {slug, label},  -- theater-specific belligerent labels
+  enabled         boolean         -- false until source-coverage sign-off
+}
+```
+
+Adding a theater: (1) extend `theater` pgEnum via migration, (2) add config entry, (3) wire source adapters, (4) methodology section, (5) pin palette review. **M1–M7 ship Ukraine only**; M8 enables additional theaters.
 
 ### 5.1 `evidence`
 A single sourced item. Immutable once written (corrections are new rows / audit entries).
 ```
 evidence(
   id              uuid pk,
+  theater         enum('ukraine', ...),   -- extend via migration (§5.0)
   kind            enum('official','news','x_post'),
   publisher       text,            -- e.g. 'OHCHR', 'Mediazona', '@user'
   url             text,
   published_at    date,            -- source publication date
   raw             jsonb,           -- normalized source payload
-  content_hash    text unique,     -- dedup at ingest (PRD §12 triage)
+  content_hash    text,              -- dedup at ingest (PRD §12 triage)
+  unique(theater, content_hash)      -- hash scoped per theater
   embedding       vector(1024),    -- Voyage; pgvector + ivfflat index
   geom            geography(Point),-- nullable; AI/source-provided (PostGIS)
   geo_confidence  real,            -- 0..1; independent of tier (PRD §A.4)
@@ -104,7 +123,8 @@ The counted unit. Tier and dedup live here; aggregates read from here.
 ```
 casualty(
   id              uuid pk,
-  side            enum('ua_coalition','russia'),
+  theater         enum,
+  side            enum('ua_coalition','russia'),  -- theater-specific; labels from config
   category        enum('killed','wounded','missing_pow'),
   audience        enum('military','civilian'),   -- civilian series kept separate (PRD §4)
   count           int default 1,                 -- 1 for named; N for event-level OSINT
@@ -122,11 +142,12 @@ casualty_evidence(casualty_id, evidence_id)      -- M:N; one casualty, many corr
 ### 5.3 `daily_agg` (derived rollup — the query engine's backbone)
 ```
 daily_agg(
+  theater    enum,
   day        date,
   side       enum, category enum, audience enum,
   tier       enum,
   count      int,                 -- sum of canonical casualty.count for that cell
-  primary key(day, side, category, audience, tier)
+  primary key(theater, day, side, category, audience, tier)
 )
 ```
 Rebuildable from `casualty` at any time. Updated incrementally as the pipeline writes (delta upserts). This is what the counter and map filters read — never a scan of `casualty`.
@@ -143,7 +164,9 @@ Satisfies PRD §6.4 (logged corrections) and §12 (per-item cost). Human audit q
 
 ## 6. The as-of / windowed count engine
 
-This is the load-bearing piece. PRD §6.1: every count is computed **as of the selected date D**, per side/category, across windows {24h, 7d, 30d, 90d, 1y, total}, at or above an authentication **threshold T**.
+This is the load-bearing piece. PRD §6.1/§6.8: every count is computed **as of the selected date D** within a **selected theater T**, per side/category, across windows {24h, 7d, 30d, 90d, 1y, total}, at or above an authentication **threshold Th**.
+
+**Theater axis:** all queries filter `theater = T`. The `total` window lower bound is `epochStart(T)` from theater config (Ukraine: 2022-02-24), not a global constant. Cross-theater totals are never computed.
 
 **Attribution axis:** `event_date` (when the casualty occurred). "As of D" = casualties with `event_date ≤ D`. (The alternate "as *known* on D" view, using `confirmed_at`, is deferred — see §15.)
 
@@ -152,11 +175,12 @@ This is the load-bearing piece. PRD §6.1: every count is computed **as of the s
 sum(daily_agg.count)
  where side=S and category=C and audience=A
    and tier >= T                          -- tiers ordered official>confirmed>osint>ai_corroborated
-   and day in window(W, D)                -- e.g. 7d → [D-6, D]; total → [INVASION_START, D]
+   and theater = T
+   and day in window(W, D, epochStart(T)) -- e.g. 7d → [D-6, D]; total → [epochStart, D]
 ```
 - **Tier-threshold** is a sum over the tier dimension ≥ T — so moving the slider (PRD §5.1) is just re-summing already-fetched rows; the client can hold all four tiers' daily series and re-aggregate locally with **zero extra requests**.
 - **Windows** are range-sums over `day`. We maintain a **per-(side,category,audience,tier) cumulative prefix sum** so `total` and any window are O(1) lookups (`prefix[D] - prefix[D-window]`).
-- The full matrix for a given D and all tiers is small (6 windows × 2 sides × 3 categories × 2 audiences × 4 tiers) and cacheable per-day. `/api/counts?asOf=D` returns the per-day tier series for the visible range; the slider and the 24h/7d/.../total cells are computed client-side.
+- The full matrix for a given theater, D, and all tiers is small (6 windows × 2 sides × 3 categories × 2 audiences × 4 tiers) and cacheable per-day. `/api/counts?theater=T&asOf=D` returns the per-day tier series for the visible range plus `epochStart`; the slider and the 24h/7d/.../total cells are computed client-side.
 
 **Caching:** `daily_agg` for past days is immutable once audited; cache aggressively (CDN + per-day cache key). Only the trailing edge (recent days, still receiving evidence) is revalidated.
 
@@ -175,7 +199,7 @@ A belligerent's claim about its enemy is tagged and **excluded from confirmation
 
 Implements PRD §6.4 + Appendix A, with PRD §12 cost controls baked in. Runs as a **daily batch**, not per-request.
 
-1. **Embedding prefilter (not the LLM).** For each new evidence item, `pgvector` returns the **top-K** (K≈20) nearest DB items above a similarity floor. The LLM never sees the whole DB — token cost is O(K). This is also the §A.3 dedup candidate set.
+1. **Embedding prefilter (not the LLM).** For each new evidence item, `pgvector` returns the **top-K** (K≈20) nearest DB items **in the same theater** above a similarity floor. The LLM never sees the whole DB — token cost is O(K). This is also the §A.3 dedup candidate set.
 2. **Haiku scoring.** One Haiku 4.5 call scores the item against the K candidates → match score `s` (§A.2 weights), corroborating `c` / contradicting `k` tallies. The **static A.1/A.2 rubric is a cached prefix** (≈0.1× input). Calls are submitted via the **Batch API (−50%)**.
 3. **Threshold logic (§A.3), in order:** dedup/merge (`s≥0.90` vs a counted casualty → attach evidence, set `is_canonical=false`); OSINT (`s≥0.85, c≥2, k=0`); AI-corroborated (`0.70≤s<0.85, c≥1, c>k`); else `status='unverified'`.
 4. **Geolocation.** Haiku proposes coordinates from text/media → `geom`, `geo_confidence`, `geo_status='ai_auto'`, flagged for audit. Geo confidence never changes `tier` (PRD §A.4).
@@ -294,11 +318,11 @@ await db.corroBatch.update(batch.id, { status: "processed" });
 
 ## 9. APIs & views
 
-### 9.1 `/api/counts?asOf=D`
-Returns, for the visible date range, the per-day series keyed by (side, category, audience, tier). Small payload; CDN-cached per day. The **counter (View 1)** is an RSC shell that renders the default-threshold headline server-side (fast first paint), then hydrates a client slider/date-scrubber that recomputes windows and threshold locally from the fetched series.
+### 9.1 `/api/counts?theater=T&asOf=D&from=...`
+Returns, for the visible date range within theater **T**, the per-day series keyed by (theater, side, category, audience, tier), plus `epochStart` for window clamping. Small payload; CDN-cached per `(theater, day)`. The **counter (View 1)** is an RSC shell that renders the default-threshold headline server-side (fast first paint), then hydrates a theater selector + client slider/date-scrubber that recomputes windows and threshold locally from the fetched series. Deep links: `/c/:theater/:date` (M2 ships Ukraine-only UI; selector lights up in M8).
 
-### 9.2 `/api/map?asOf=D&tiers=...&side=...&bbox=...&zoom=...`
-Returns clustered evidence pins for the viewport. Server-side clustering via PostGIS `ST_ClusterDBSCAN` (mid zoom) → individual evidence (high zoom). **Map (View 2)** is MapLibre; the same `asOf`/threshold/side/category controls drive both views (shared URL state). Pin detail → `/api/evidence/:id` (source/news/X link, tier, side, date; for AI-corroborated, the corroborating items + match score + contradicting evidence). The clustering implementation is §9.3.
+### 9.2 `/api/map?theater=T|all&asOf=D&threshold=...&side=...&bbox=...&zoom=...`
+Returns clustered evidence pins for the viewport. `theater=all` at world/regional zoom shows multiple enabled theaters (M8); single-theater mode filters `map_point.theater = T`. Server-side clustering via PostGIS `ST_ClusterDBSCAN` (mid zoom) → individual evidence (high zoom). **Map (View 2)** is MapLibre; the same theater/asOf/threshold/side/category controls drive both views (shared URL state). Pin detail → `/api/evidence/:id` (source/news/X link, tier, side, theater, date; for AI-corroborated, the corroborating items + match score + contradicting evidence). Pin/cluster **graphics** follow PRD §5.3 (tier rings, side chroma, provisional badges) — implemented as MapLibre SDF sprite layers in M4. The clustering implementation is §9.3.
 
 ### 9.3 Map clustering — implementation
 
@@ -307,6 +331,7 @@ Returns clustered evidence pins for the viewport. Server-side clustering via Pos
 ```sql
 map_point (
   casualty_id   uuid primary key,
+  theater       enum,
   evidence_id   uuid,                       -- representative (best geo_confidence) evidence for pin detail
   side          enum, category enum, audience enum,
   tier          enum,
@@ -317,6 +342,7 @@ map_point (
 CREATE INDEX map_point_gix  ON map_point USING gist (geom_3857);
 CREATE INDEX map_point_date ON map_point (event_date);
 CREATE INDEX map_point_tier ON map_point (tier);
+CREATE INDEX map_point_theater ON map_point (theater);
 ```
 
 We cluster in **EPSG:3857 (Web Mercator)**, not geography. 3857's coordinate units already bake in the Mercator scaling, so a constant per-zoom `eps` yields **screen-uniform clusters** — pins that are N pixels apart on screen cluster regardless of latitude. The conversion from a pixel radius to 3857 units at a given zoom (512px tiles):
@@ -340,6 +366,7 @@ filtered AS (                              -- bbox + facet filters; uses the GiS
   FROM   map_point mp, params p
   WHERE  mp.geom_3857 && p.bbox
     AND  mp.event_date <= $asOf
+    AND  ($theater IS NULL OR $theater = 'all' OR mp.theater = $theater)
     AND  mp.tier = ANY($tiers)
     AND  ($side     IS NULL OR mp.side     = $side)
     AND  ($category IS NULL OR mp.category = $category)
@@ -360,6 +387,7 @@ SELECT
   ST_AsGeoJSON(
     ST_Transform(ST_Envelope(ST_Collect(geom_3857)), 4326)
   )::json                                                    AS bounds,              -- fitBounds on click
+  mode() WITHIN GROUP (ORDER BY theater)                     AS theater,
   mode() WITHIN GROUP (ORDER BY side)                        AS dominant_side,       -- pin color
   max(tier)                                                  AS top_tier,            -- strongest tier in cluster (badge)
   (array_agg(casualty_id ORDER BY geo_confidence DESC))[1]   AS rep_casualty_id,     -- used when n = 1
@@ -388,7 +416,7 @@ PeaceClock ships four product surfaces (PRD §5.3) over **one backend** and **on
 **Shared contract.** The API responses are typed in a `@peaceclock/api-types` package consumed by both the web client and the native client, so the counter matrix, tier enum, and map GeoJSON have one definition. The counter is a small per-day tier series (§6) the client aggregates locally; the map is a GeoJSON `FeatureCollection` (§9.3). Both shapes are identical across platforms, so the date controller, threshold slider, side/category filters, and as-of logic are written once as platform-agnostic TypeScript and only the rendering differs.
 
 **Surfaces:**
-- **Web app + promotional website** — Next.js on Vercel (the canonical client). The promo site is the same Next.js app: marketing/landing routes, the methodology and about/funding pages, App Store / Google Play / Mac App Store badges, and the **live counter server-rendered** for fast first paint and link previews. Both views run in the browser (MapLibre **GL JS** for the map). Universal-link / App-Link routes (`/c/...`, `/m/...`) resolve to the same state on web and hand off to the app when installed.
+- **Web app + promotional website** — Next.js on Vercel (the canonical client). The promo site is the same Next.js app: marketing/landing routes, the methodology and about/funding pages, App Store / Google Play / Mac App Store badges, and the **live counter server-rendered** for fast first paint and link previews. Both views run in the browser (MapLibre **GL JS** for the map). Universal-link / App-Link routes (`/c/:theater/:date`, `/m/:theater/:date`) resolve to the same state on web and hand off to the app when installed.
 - **iOS / iPadOS (Apple App Store)** and **Android (Google Play)** — one **Expo / React Native** app. View 1 is RN components over the shared TS logic; View 2 uses **MapLibre Native** (`@maplibre/maplibre-react-native`) consuming the *same* `/api/map` GeoJSON and tile provider as web. Deep links via universal links (iOS) / App Links (Android).
 - **macOS (Mac App Store)** — v1 ships the **iPad app on Apple Silicon** ("Designed for iPad"), giving a Mac App Store binary from the same Expo project with no separate codebase. If we need true desktop chrome (resizable window, menu bar), **React Native macOS** is the planned fidelity upgrade — still sharing the TS core (§14).
 
@@ -430,8 +458,12 @@ PeaceClock ships four product surfaces (PRD §5.3) over **one backend** and **on
 - **M5 Promotional website** → §9.4 Next.js marketing routes, SSR live counter, methodology/about pages, store badges.
 - **M6 Apps & store submission** → §9.4 Expo/RN clients (iOS, Android), MapLibre Native, macOS via iPad-app path, EAS Build/Submit, store-review prep.
 - **M7 Polish/launch** → §10 perf, §11 a11y/audit, §9.4 offline/last-known-good, coordinated multi-surface launch.
+- **M8 Multi-theater expansion** → §5.0 theater config, second theater ingestion, multi-theater map world view, per-theater audit queues, theater selector UI.
 
 ## 14. Open engineering questions
+
+- **Second theater enum values + migration** — order and minimum source bar before enabling in `theater.config.ts` (PRD §10).
+- **Per-theater side enum** — v1 reuses `ua_coalition`/`russia` for Ukraine only; new theaters may need side enum extensions or a `side_slug text` column (evaluate at M8).
 
 - **Embedding model & dimension** — confirm `voyage-3` (1024-d) vs a multilingual variant given Ukrainian/Russian source text.
 - **`event_date` extraction** — how reliably can we date a casualty from an OSINT post; fallback when only `published_at` is known.

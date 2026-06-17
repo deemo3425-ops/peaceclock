@@ -42,20 +42,25 @@ Legend — size: S ≤0.5d, M ~1–2d, L ~3–5d. Each task lists **deps** and *
 
 ## WS1 — Data model & migrations (EDD §5)
 
-- **T1.1 — Core enums** (S) — deps: T0.3
+- **T1.0 — Theater enum + config registry** (S) — deps: T0.3
+  `theater` pgEnum (`ukraine` at launch); `theater.config.ts` with `TheaterConfig` (epoch, bounds, sides, enabled). Default `ukraine` on all fact tables. `content_hash` unique per `(theater, content_hash)` (EDD §5.1).
+  *Acceptance:* config exported; Ukraine epoch `2022-02-24`; migration applies; cross-theater hash collision allowed, same-theater rejected.
+
+- **T1.1 — Core enums** (S) — deps: T0.3, T1.0
   `side`, `category`, `audience`, `tier` (ordered: official>confirmed>osint>ai_corroborated), `evidence.kind`, status enums.
   *Acceptance:* enums created; tier ordering encoded (numeric rank helper) and unit-tested.
 
 - **T1.2 — `evidence` table** (M) — deps: T1.1
-  All columns per EDD §5.1 incl. `embedding vector(1024)`, `geom geography(Point)`, `content_hash unique`, `corro_status`.
-  *Acceptance:* migration applies; `content_hash` unique constraint rejects dup insert; GiST index on `geom`, ivfflat index on `embedding` (`vector_cosine_ops`) created.
+  All columns per EDD §5.1 incl. `theater`, `embedding vector(1024)`, `geom geography(Point)`, `unique(theater, content_hash)`, `corro_status`.
+  *Acceptance:* migration applies; same-theater dup insert rejected; GiST index on `geom`, ivfflat index on `embedding` (`vector_cosine_ops`) created.
 
 - **T1.3 — `casualty` + `casualty_evidence`** (M) — deps: T1.1
+  Incl. `theater` on `casualty`.
   Per EDD §5.2; M:N link table; indexes on `(side,category,audience,event_date,tier)` and `dedup_group`.
   *Acceptance:* FK integrity enforced; can insert a casualty linked to ≥1 evidence.
 
 - **T1.4 — `daily_agg` + prefix-sum support** (M) — deps: T1.3
-  Per EDD §5.3; PK `(day,side,category,audience,tier)`; a `daily_agg_prefix` materialization or query path for O(1) windows (EDD §6).
+  Per EDD §5.3; PK `(theater,day,side,category,audience,tier)`; a `daily_agg_prefix` materialization or query path for O(1) windows (EDD §6).
   *Acceptance:* schema applies; a fixture proves a window range-sum + total prefix lookup return correct numbers.
 
 - **T1.5 — `audit_log`** (S) — deps: T1.3
@@ -63,7 +68,7 @@ Legend — size: S ≤0.5d, M ~1–2d, L ~3–5d. Each task lists **deps** and *
   *Acceptance:* insert + query by `casualty_id` works; cost column numeric.
 
 - **T1.6 — `map_point` denorm table** (S) — deps: T1.3
-  Per EDD §9.3 incl. `geom_3857`, indexes (GiST + btree on date/tier). (Populated by pipeline later; table + indexes now.)
+  Per EDD §9.3 incl. `theater`, `geom_3857`, indexes (GiST + btree on date/tier/theater). (Populated by pipeline later; table + indexes now.)
   *Acceptance:* table + indexes created; `ST_Transform` into `geom_3857` validated on a sample row.
 
 - **T1.7 — `corro_batch`** (S) — deps: T1.1
@@ -109,7 +114,7 @@ Legend — size: S ≤0.5d, M ~1–2d, L ~3–5d. Each task lists **deps** and *
   *Acceptance:* a fake adapter ingests fixtures end-to-end and advances its watermark; re-run is idempotent.
 
 - **T4.2 — Normalize + triage + persist** (M) — deps: T4.1, T1.2, T3.2
-  Compute `content_hash`; pre-LLM triage (exact/near-dup drop, source allowlist, junk filter — PRD §12); persist `evidence`; embed; set `corro_status='pending'`.
+  Compute `content_hash`; pre-LLM triage (exact/near-dup drop per theater, source allowlist, junk filter — PRD §12); persist `evidence` with `theater`; embed; set `corro_status='pending'`.
   *Acceptance:* duplicate payloads are dropped at the hash gate; persisted rows carry embeddings; counts of ingested/dropped logged.
 
 - **T4.3 — Official-tier short-circuit** (S) — deps: T4.2, T2.2
@@ -200,4 +205,5 @@ T4.1→T4.2→T4.3 → T5.1 ; T5.2 ; T5.3(blocked: UA source)
 - [tasks-m5.md](./tasks-m5.md) — Promotional website (marketing + live counter).
 - [tasks-m6.md](./tasks-m6.md) — Apps & store submission (three new surfaces; store review is the constraint).
 - [tasks-m7.md](./tasks-m7.md) — Polish & launch (NFRs consolidated; coordinated public launch).
+- [tasks-m8.md](./tasks-m8.md) — Multi-theater expansion (second theater + selector UI + world map).
 - [ROADMAP.md](./ROADMAP.md) — 🟦 100% Defined · ⬜ 0% Completed · ⬜ 0% Deployed (source of truth for progress; update as milestones complete).
