@@ -13,6 +13,7 @@ import {
   index,
   foreignKey,
   primaryKey,
+  unique,
   customType,
 } from 'drizzle-orm/pg-core';
 
@@ -130,6 +131,10 @@ export const casualtyEvidenceTable = pgTable(
       columns: [table.evidenceId],
       foreignColumns: [evidenceTable.id],
     }),
+    casualtyEvidenceUnique: unique('casualty_evidence_casualty_evidence_unique').on(
+      table.casualtyId,
+      table.evidenceId,
+    ),
   })
 );
 
