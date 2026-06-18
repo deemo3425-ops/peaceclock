@@ -1,0 +1,35 @@
+[
+  {
+    "id": "ohchr-2022-03-01",
+    "reportDate": "2022-03-01",
+    "publishedAt": "2022-03-01",
+    "url": "https://www.ohchr.org/en/ukraine-update-2022-03-01",
+    "region": "Kharkiv",
+    "killed": 10,
+    "wounded": 0,
+    "side": "ua_coalition",
+    "audience": "civilian"
+  },
+  {
+    "id": "ohchr-2022-03-15",
+    "reportDate": "2022-03-15",
+    "publishedAt": "2022-03-15",
+    "url": "https://www.ohchr.org/en/ukraine-update-2022-03-15",
+    "region": "Kyiv",
+    "killed": 5,
+    "wounded": 12,
+    "side": "ua_coalition",
+    "audience": "civilian"
+  },
+  {
+    "id": "ohchr-2022-04-01",
+    "reportDate": "2022-04-01",
+    "publishedAt": "2022-04-01",
+    "url": "https://www.ohchr.org/en/ukraine-update-2022-04-01",
+    "region": "Mariupol",
+    "killed": 8,
+    "wounded": 3,
+    "side": "ua_coalition",
+    "audience": "civilian"
+  }
+]

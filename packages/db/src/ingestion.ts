@@ -5,9 +5,14 @@
 
 import crypto from 'crypto';
 import { getDb } from './index';
-import { evidenceTable } from '../schema';
+import {
+  evidenceTable,
+  casualtyTable,
+  casualtyEvidenceTable,
+} from '../schema';
 import { embed } from './embeddings';
 import { applyAggDelta } from './agg-delta';
+import { getWatermark, setWatermark } from './watermark';
 import { eq, and } from 'drizzle-orm';
 
 /**
@@ -21,6 +26,20 @@ export interface NormalizedEvidence {
   publishedAt?: string; // ISO date
   text: string;
   raw: Record<string, unknown>; // full payload
+}
+
+/**
+ * Casualty fields carried in evidence.raw for short-circuit ingestion.
+ */
+export interface CasualtyPayload {
+  side: 'ua_coalition' | 'russia';
+  category: 'killed' | 'wounded' | 'missing_pow';
+  audience: 'military' | 'civilian';
+  eventDate: string;
+  count: number;
+  tier?: 'official' | 'confirmed';
+  /** Named-individual dedup key (RU/UA confirmed military). */
+  dedupKey?: string;
 }
 
 /**
@@ -44,6 +63,41 @@ function computeContentHash(evidence: NormalizedEvidence): string {
     text: evidence.text.trim(),
   });
   return crypto.createHash('sha256').update(canonical).digest('hex');
+}
+
+/** Deterministic UUID v4-shaped id from a dedup key. */
+function dedupKeyToGroup(dedupKey: string): string {
+  const hex = crypto.createHash('sha256').update(dedupKey).digest('hex').slice(0, 32);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+
+function parseCasualtyPayload(
+  evidence: NormalizedEvidence,
+  isOfficial: boolean,
+): CasualtyPayload | null {
+  const raw = evidence.raw;
+  const embedded = raw.casualty as Partial<CasualtyPayload> | undefined;
+  if (!embedded?.side || !embedded.category || !embedded.audience || !embedded.eventDate) {
+    return null;
+  }
+  if (typeof embedded.count !== 'number' || embedded.count <= 0) {
+    return null;
+  }
+
+  const tier =
+    embedded.tier ??
+    (isOfficial || evidence.kind === 'official' ? 'official' : undefined);
+  if (!tier) return null;
+
+  return {
+    side: embedded.side,
+    category: embedded.category,
+    audience: embedded.audience,
+    eventDate: embedded.eventDate,
+    count: embedded.count,
+    tier,
+    dedupKey: typeof embedded.dedupKey === 'string' ? embedded.dedupKey : undefined,
+  };
 }
 
 /**
@@ -86,12 +140,95 @@ async function triage(
 }
 
 /**
+ * Mint a casualty row and apply aggregate delta (T4.3 official / T5.2 confirmed).
+ */
+async function mintShortCircuitCasualty(
+  evidenceId: string,
+  payload: CasualtyPayload,
+): Promise<string | null> {
+  const db = getDb();
+  const theater = 'ukraine' as const;
+  const tier = payload.tier!;
+
+  let dedupGroup: string | undefined;
+  if (payload.dedupKey) {
+    dedupGroup = dedupKeyToGroup(payload.dedupKey);
+    const [existing] = await db
+      .select({ id: casualtyTable.id })
+      .from(casualtyTable)
+      .where(
+        and(
+          eq(casualtyTable.dedupGroup, dedupGroup),
+          eq(casualtyTable.isCanonical, true),
+          eq(casualtyTable.status, 'counted'),
+        ),
+      )
+      .limit(1);
+
+    if (existing) {
+      await db
+        .insert(casualtyEvidenceTable)
+        .values({ casualtyId: existing.id, evidenceId })
+        .onConflictDoNothing({
+          target: [casualtyEvidenceTable.casualtyId, casualtyEvidenceTable.evidenceId],
+        });
+      console.log('[ingest] dedup merge named individual', {
+        dedupKey: payload.dedupKey,
+        casualtyId: existing.id,
+      });
+      return existing.id;
+    }
+  }
+
+  const [created] = await db
+    .insert(casualtyTable)
+    .values({
+      theater,
+      side: payload.side,
+      category: payload.category,
+      audience: payload.audience,
+      count: payload.count,
+      eventDate: payload.eventDate,
+      tier,
+      status: 'counted',
+      dedupGroup,
+      isCanonical: true,
+    })
+    .returning({ id: casualtyTable.id });
+
+  await db.insert(casualtyEvidenceTable).values({
+    casualtyId: created.id,
+    evidenceId,
+  });
+
+  await applyAggDelta({
+    eventDate: payload.eventDate,
+    theater,
+    side: payload.side,
+    category: payload.category,
+    audience: payload.audience,
+    newTier: tier,
+    count: payload.count,
+  });
+
+  console.log('[ingest] casualty minted', {
+    casualtyId: created.id,
+    tier,
+    side: payload.side,
+    count: payload.count,
+    eventDate: payload.eventDate,
+  });
+
+  return created.id;
+}
+
+/**
  * Ingest evidence: persist, embed, enqueue corroboration (T4.2).
  * Official sources short-circuit to casualty (T4.3).
  */
 export async function ingestEvidence(
   evidence: NormalizedEvidence,
-  isOfficial: boolean
+  isOfficial: boolean,
 ): Promise<void> {
   const hash = computeContentHash(evidence);
   const theater = 'ukraine' as const;
@@ -101,6 +238,9 @@ export async function ingestEvidence(
   if (!shouldIngest) {
     return;
   }
+
+  const casualtyPayload = parseCasualtyPayload(evidence, isOfficial);
+  const shortCircuits = casualtyPayload !== null;
 
   // Embed
   const { embedding } = await embed(evidence.text);
@@ -119,23 +259,63 @@ export async function ingestEvidence(
       contentHash: hash,
       embedding,
       geom: 'POINT(0 0)', // placeholder; AI/audit fills in
-      corroStatus: isOfficial ? 'done' : 'pending',
+      corroStatus: shortCircuits ? 'done' : 'pending',
     })
     .returning({ id: evidenceTable.id });
 
-  const evidenceId = result[0].id;
+  const evidenceId = result[0]!.id;
   console.log('[ingest] evidence persisted', { evidenceId, hash });
 
-  // Official-tier short-circuit: mint casualty immediately (T4.3)
-  // TODO: official source → casualty row (M1·T4.3)
+  // Official / confirmed short-circuit: mint casualty immediately (T4.3, T5.2)
+  if (casualtyPayload) {
+    await mintShortCircuitCasualty(evidenceId, casualtyPayload);
+  }
+}
+
+export interface AdapterRunResult {
+  adapter: string;
+  fetched: number;
+  watermark: string;
 }
 
 /**
- * Run all adapters (stub for Vercel Cron, T4.1).
+ * Run all adapters: fetch since watermark, ingest, advance watermark (T4.1).
  */
-export async function runAdapters(adapters: SourceAdapter[]): Promise<void> {
+export async function runAdapters(adapters: SourceAdapter[]): Promise<AdapterRunResult[]> {
+  const results: AdapterRunResult[] = [];
+
   for (const adapter of adapters) {
     console.log(`[ingest] running adapter: ${adapter.name}`);
-    // TODO: Get watermark, fetch, ingest
+    const watermark = await getWatermark(adapter.name);
+    let items: NormalizedEvidence[];
+
+    try {
+      items = await adapter.fetchSince(watermark);
+    } catch (error) {
+      console.error(`[ingest] adapter ${adapter.name} fetch failed — watermark not advanced`, error);
+      results.push({ adapter: adapter.name, fetched: 0, watermark });
+      continue;
+    }
+
+    let maxDate = watermark;
+    for (const item of items) {
+      const isOfficial = item.kind === 'official';
+      await ingestEvidence(item, isOfficial);
+      if (item.publishedAt && item.publishedAt > maxDate) {
+        maxDate = item.publishedAt;
+      }
+    }
+
+    if (maxDate > watermark) {
+      await setWatermark(adapter.name, maxDate);
+    }
+
+    results.push({ adapter: adapter.name, fetched: items.length, watermark: maxDate });
+    console.log(`[ingest] adapter ${adapter.name} done`, {
+      fetched: items.length,
+      watermark: maxDate,
+    });
   }
+
+  return results;
 }

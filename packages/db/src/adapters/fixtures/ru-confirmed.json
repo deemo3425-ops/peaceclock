@@ -1,0 +1,29 @@
+[
+  {
+    "id": "mediazona-aleksey-volkov-2022-06-10",
+    "source": "Mediazona",
+    "publishedAt": "2022-06-10",
+    "eventDate": "2022-06-05",
+    "name": "Aleksey Volkov",
+    "url": "https://mediazona.io/casualties/aleksey-volkov",
+    "location": "Sievierodonetsk"
+  },
+  {
+    "id": "mediazona-dmitry-sokolov-2022-08-20",
+    "source": "Mediazona",
+    "publishedAt": "2022-08-20",
+    "eventDate": "2022-08-15",
+    "name": "Dmitry Sokolov",
+    "url": "https://mediazona.io/casualties/dmitry-sokolov",
+    "location": "Bakhmut"
+  },
+  {
+    "id": "bbc-igor-petrov-2023-01-10",
+    "source": "BBC",
+    "publishedAt": "2023-01-10",
+    "eventDate": "2023-01-05",
+    "name": "Igor Petrov",
+    "url": "https://www.bbc.com/news/igor-petrov",
+    "location": "Soledar"
+  }
+]
