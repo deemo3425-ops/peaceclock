@@ -8,6 +8,7 @@
     "build": "tsc && cp -r src/adapters/fixtures dist/src/adapters/fixtures",
     "migrate": "drizzle-kit migrate",
     "migrate:generate": "drizzle-kit generate",
+    "db:seed": "pnpm build && node scripts/seed-prod.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run --exclude '**/integration.test.ts'",
