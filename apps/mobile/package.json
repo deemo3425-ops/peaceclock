@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@maplibre/maplibre-react-native": "10.4.2",
     "@peaceclock/api-types": "workspace:*",
     "@peaceclock/count-engine": "workspace:*",
     "@react-native-community/slider": "4.5.5",

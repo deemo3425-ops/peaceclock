@@ -30,6 +30,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundler: 'metro',
     favicon: './assets/favicon.png',
   },
+  plugins: ['@maplibre/maplibre-react-native'],
   extra: {
     eas: {
       projectId: 'pending',
