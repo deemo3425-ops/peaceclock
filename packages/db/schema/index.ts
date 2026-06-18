@@ -10,14 +10,30 @@ import {
   boolean,
   pgEnum,
   uniqueIndex,
+  index,
   foreignKey,
+  primaryKey,
   customType,
 } from 'drizzle-orm/pg-core';
 
-// Vector type stub for pgvector
+// Vector type stub for pgvector (EDD §5.1: vector(1024))
 const vector = customType<{ data: number[] }>({
   dataType() {
-    return 'vector';
+    return 'vector(1024)';
+  },
+});
+
+// PostGIS geography/geometry stubs (EDD §5.1, §9.3)
+const geographyPoint = customType<{ data: string }>({
+  dataType() {
+    // Unquoted in migration SQL — PostGIS geography(Point,4326)
+    return 'geography';
+  },
+});
+
+const geometryPoint3857 = customType<{ data: string }>({
+  dataType() {
+    return 'geometry(Point,3857)';
   },
 });
 
@@ -33,6 +49,8 @@ export const casualtyStatusEnum = pgEnum('casualty_status', ['counted', 'unverif
 export const geoStatusEnum = pgEnum('geo_status', ['source', 'ai_auto', 'audited']);
 export const auditActionEnum = pgEnum('audit_action', ['tier_assign', 'tier_change', 'geo_assign', 'geo_fix', 'dedup_merge', 'reject']);
 export const auditActorEnum = pgEnum('audit_actor', ['ai_haiku', 'ai_opus', 'human']);
+export const corroBatchStageEnum = pgEnum('stage', ['haiku', 'opus']);
+export const corroBatchStatusEnum = pgEnum('status', ['submitted', 'ended', 'processed']);
 
 // evidence (T1.2, EDD §5.1)
 export const evidenceTable = pgTable(
@@ -47,7 +65,7 @@ export const evidenceTable = pgTable(
     raw: text('raw').notNull(), // jsonb in prod
     contentHash: text('content_hash').notNull(),
     embedding: vector('embedding'),
-    geom: text('geom').notNull(), // geography(Point) — WKT for now
+    geom: geographyPoint('geom').notNull(),
     geoConfidence: real('geo_confidence'),
     geoStatus: geoStatusEnum('geo_status'),
     corroStatus: corroStatusEnum('corro_status').default('pending'),
@@ -57,6 +75,11 @@ export const evidenceTable = pgTable(
     contentHashTheaterUnique: uniqueIndex('idx_evidence_theater_content_hash').on(
       table.theater,
       table.contentHash,
+    ),
+    geomGist: index('idx_evidence_geom_gist').using('gist', table.geom),
+    embeddingIvfflat: index('idx_evidence_embedding_ivfflat').using(
+      'ivfflat',
+      table.embedding.op('vector_cosine_ops'),
     ),
   })
 );
@@ -78,7 +101,17 @@ export const casualtyTable = pgTable(
     isCanonical: boolean('is_canonical').default(true),
     matchScore: real('match_score'),
     createdAt: timestamp('created_at').defaultNow(),
-  }
+  },
+  (table) => ({
+    facetIdx: index('idx_casualty_facet').on(
+      table.side,
+      table.category,
+      table.audience,
+      table.eventDate,
+      table.tier,
+    ),
+    dedupGroupIdx: index('idx_casualty_dedup_group').on(table.dedupGroup),
+  })
 );
 
 // casualty_evidence (T1.3, M:N link)
@@ -113,10 +146,10 @@ export const dailyAggTable = pgTable(
     count: integer('count').notNull().default(0),
   },
   (table) => ({
-    pk: {
+    pk: primaryKey({
       name: 'pk_daily_agg',
       columns: [table.theater, table.day, table.side, table.category, table.audience, table.tier],
-    },
+    }),
   })
 );
 
@@ -146,16 +179,22 @@ export const mapPointTable = pgTable(
     tier: tierEnum('tier').notNull(),
     eventDate: date('event_date').notNull(),
     geoConfidence: real('geo_confidence'),
-    geom3857: text('geom_3857').notNull(), // EPSG:3857 (Web Mercator)
-  }
+    geom3857: geometryPoint3857('geom_3857').notNull(),
+  },
+  (table) => ({
+    geom3857Gist: index('map_point_gix').using('gist', table.geom3857),
+    eventDateIdx: index('idx_map_point_event_date').on(table.eventDate),
+    tierIdx: index('idx_map_point_tier').on(table.tier),
+    theaterIdx: index('idx_map_point_theater').on(table.theater),
+  })
 );
 
 // corro_batch (T1.7, EDD §8.1) — Anthropic batch tracking
 export const carroBatchTable = pgTable('corro_batch', {
   id: uuid('id').primaryKey().defaultRandom(),
   providerId: text('provider_id').notNull(), // Anthropic batch ID
-  stage: pgEnum('stage', ['haiku', 'opus'])('stage').notNull(),
-  status: pgEnum('status', ['submitted', 'ended', 'processed'])('status').notNull(),
+  stage: corroBatchStageEnum('stage').notNull(),
+  status: corroBatchStatusEnum('status').notNull(),
   evidenceIds: text('evidence_ids').notNull(), // uuid[] as json array
   submittedAt: timestamp('submitted_at').defaultNow(),
   endedAt: timestamp('ended_at'),

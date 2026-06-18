@@ -8,7 +8,7 @@ import { getDb } from './index';
 import { evidenceTable } from '../schema';
 import { embed } from './embeddings';
 import { applyAggDelta } from './agg-delta';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 /**
  * Raw evidence from a source (normalized).
@@ -50,18 +50,22 @@ function computeContentHash(evidence: NormalizedEvidence): string {
  * Triage: drop exact/near-duplicate, apply allowlist, filter junk (T4.2).
  * Returns true if evidence should be ingested, false if filtered out.
  */
-async function triage(evidence: NormalizedEvidence, hash: string): Promise<boolean> {
+async function triage(
+  evidence: NormalizedEvidence,
+  hash: string,
+  theater: 'ukraine' = 'ukraine',
+): Promise<boolean> {
   const db = getDb();
 
-  // Exact duplicate check (content_hash unique constraint in DB, but check first)
+  // Exact duplicate check per (theater, content_hash) — cross-theater collision allowed
   const existing = await db
     .select()
     .from(evidenceTable)
-    .where(eq(evidenceTable.contentHash, hash))
+    .where(and(eq(evidenceTable.theater, theater), eq(evidenceTable.contentHash, hash)))
     .limit(1);
 
   if (existing.length > 0) {
-    console.log('[triage] drop exact duplicate', { hash });
+    console.log('[triage] drop exact duplicate', { theater, hash });
     return false;
   }
 
@@ -90,9 +94,10 @@ export async function ingestEvidence(
   isOfficial: boolean
 ): Promise<void> {
   const hash = computeContentHash(evidence);
+  const theater = 'ukraine' as const;
 
   // Triage
-  const shouldIngest = await triage(evidence, hash);
+  const shouldIngest = await triage(evidence, hash, theater);
   if (!shouldIngest) {
     return;
   }
@@ -105,7 +110,7 @@ export async function ingestEvidence(
   const result = await db
     .insert(evidenceTable)
     .values({
-      theater: 'ukraine',
+      theater,
       kind: evidence.kind,
       publisher: evidence.publisher,
       url: evidence.url,
