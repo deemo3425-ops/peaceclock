@@ -1,12 +1,13 @@
 'use client';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import type { Map as MLMap, GeoJSONSource, MapGeoJSONFeature } from 'maplibre-gl';
 import type { MapResponse, MapFeature } from '@peaceclock/api-types';
 import { Side, Category, Tier } from '@peaceclock/api-types';
 import { lonLatToMercator } from '@peaceclock/count-engine';
 import { track } from '@/lib/analytics';
+import { SIDE_LABEL, TIER_LABEL } from '@/lib/labels';
 import {
   loadMapSprites,
   prefersReducedMotion,
@@ -33,17 +34,73 @@ function debounce<T extends (...a: any[]) => void>(fn: T, ms: number): T {
   return ((...a: any[]) => { if (t) clearTimeout(t); t = setTimeout(() => fn(...a), ms); }) as T;
 }
 
+function featureKey(f: MapFeature, index: number): string {
+  const [lng, lat] = f.geometry.coordinates;
+  const id = f.properties.repEvidenceId ?? f.properties.repCasualtyId;
+  return id ? `${f.properties.kind}-${id}` : `${f.properties.kind}-${lng}-${lat}-${index}`;
+}
+
+function featureLabel(f: MapFeature): string {
+  const side = SIDE_LABEL[f.properties.dominantSide];
+  const tier = TIER_LABEL[f.properties.topTier];
+  if (f.properties.kind === 'cluster' && f.properties.n > 1) {
+    return `Cluster · ${f.properties.n} evidence points · ${side} · ${tier}`;
+  }
+  return `Evidence pin · ${side} · ${tier}`;
+}
+
 /**
  * Full-screen MapLibre GL JS map (M4·WS1). maplibre-gl is imported lazily inside
  * an effect so its `window`/WebGL access never runs during SSR. Viewport drives
  * /api/map refetch (debounced); cluster click → fitBounds; pin click → detail.
  * Pin/cluster graphics use the PRD §5.3 SDF sprite atlas (symbol layers).
+ * M7·T4.2: keyboard-accessible list fallback of visible pins/clusters.
  */
 export function MapView({ asOf, threshold, side, category, onPinClick }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MLMap | null>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const listWasOpen = useRef(false);
   const [ready, setReady] = useState(false);
   const [spriteError, setSpriteError] = useState<string | null>(null);
+  const [features, setFeatures] = useState<MapFeature[]>([]);
+  const [listOpen, setListOpen] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(0);
+
+  const listItems = useMemo(
+    () => features.filter((f) => f.properties.kind === 'point' || (f.properties.kind === 'cluster' && f.properties.n > 1)),
+    [features],
+  );
+
+  const listSummary = useMemo(() => {
+    const points = listItems.filter((f) => f.properties.kind === 'point').length;
+    const clusters = listItems.filter((f) => f.properties.kind === 'cluster').length;
+    if (!listItems.length) return 'No evidence pins in the current map view.';
+    const parts = [];
+    if (points) parts.push(`${points} pin${points === 1 ? '' : 's'}`);
+    if (clusters) parts.push(`${clusters} cluster${clusters === 1 ? '' : 's'}`);
+    return `${parts.join(', ')} visible. Use arrow keys to move, Enter to open.`;
+  }, [listItems]);
+
+  const fitCluster = useCallback((bounds: [number, number, number, number]) => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.fitBounds(bounds, {
+      padding: 60,
+      maxZoom: 15,
+      duration: prefersReducedMotion() ? 0 : 450,
+    });
+    track('change_threshold', {});
+  }, []);
+
+  const activateFeature = useCallback((f: MapFeature) => {
+    if (f.properties.kind === 'cluster' && f.properties.bounds) {
+      fitCluster(f.properties.bounds);
+      return;
+    }
+    if (f.properties.kind === 'point' && onPinClick) onPinClick(f);
+  }, [fitCluster, onPinClick]);
 
   const fetchViewport = useCallback(async () => {
     const map = mapRef.current;
@@ -60,8 +117,11 @@ export function MapView({ asOf, threshold, side, category, onPinClick }: Props) 
       const res = await fetch(`/api/map?${qs}`);
       if (!res.ok) return;
       const data: MapResponse = await res.json();
+      const feats = data.features as MapFeature[];
       const src = map.getSource('pins') as GeoJSONSource | undefined;
-      if (src) src.setData({ type: 'FeatureCollection', features: data.features as any });
+      if (src) src.setData({ type: 'FeatureCollection', features: feats as any });
+      setFeatures(feats);
+      setFocusedIndex(0);
     } catch { /* transient — next moveend retries */ }
   }, [asOf, threshold, side, category]);
 
@@ -204,15 +264,7 @@ export function MapView({ asOf, threshold, side, category, onPinClick }: Props) 
           if (!f) return;
           const bounds = (f.properties as any).bounds;
           const parsed = typeof bounds === 'string' ? JSON.parse(bounds) : bounds;
-          if (parsed) {
-            // prefers-reduced-motion: instant fitBounds (no staggered reveal).
-            map.fitBounds(parsed as [number, number, number, number], {
-              padding: 60,
-              maxZoom: 15,
-              duration: reducedMotion ? 0 : 450,
-            });
-            track('change_threshold', {});
-          }
+          if (parsed) fitCluster(parsed as [number, number, number, number]);
         };
         map.on('click', 'clusters', onCluster);
         map.on('click', 'cluster-count', onCluster);
@@ -242,6 +294,54 @@ export function MapView({ asOf, threshold, side, category, onPinClick }: Props) 
   // Refetch when shared filters change.
   useEffect(() => { if (ready) fetchViewport(); }, [ready, fetchViewport]);
 
+  // Focus the list when opened; return focus to toggle when closed.
+  useEffect(() => {
+    if (listOpen) {
+      listRef.current?.focus();
+      listWasOpen.current = true;
+    } else if (listWasOpen.current) {
+      toggleRef.current?.focus();
+      listWasOpen.current = false;
+    }
+  }, [listOpen]);
+
+  // Keep focused option scrolled into view.
+  useEffect(() => {
+    if (!listOpen || !listRef.current) return;
+    const option = listRef.current.querySelector<HTMLElement>(`[data-index="${focusedIndex}"]`);
+    option?.scrollIntoView({ block: 'nearest' });
+  }, [listOpen, focusedIndex]);
+
+  const onListKeyDown = (e: React.KeyboardEvent) => {
+    if (!listItems.length) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setListOpen(false);
+      }
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setFocusedIndex((i) => Math.min(i + 1, listItems.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setFocusedIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      setFocusedIndex(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      setFocusedIndex(listItems.length - 1);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      const f = listItems[focusedIndex];
+      if (f) activateFeature(f);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setListOpen(false);
+    }
+  };
+
   return (
     <div className="mapview-wrap">
       {spriteError && (
@@ -249,12 +349,68 @@ export function MapView({ asOf, threshold, side, category, onPinClick }: Props) 
           {spriteError}
         </div>
       )}
+
+      <button
+        ref={toggleRef}
+        type="button"
+        className="mapview__list-toggle"
+        aria-expanded={listOpen}
+        aria-controls="map-pin-list"
+        onClick={() => setListOpen((open) => !open)}
+      >
+        {listOpen ? 'Hide evidence list' : 'Show evidence list'}
+      </button>
+
+      {listOpen && (
+        <aside
+          id="map-pin-list"
+          className="mapview__list-panel"
+          role="region"
+          aria-label="Evidence in current map view"
+        >
+          <p className="mapview__list-summary" role="status" aria-live="polite">
+            {listSummary}
+          </p>
+          <ul
+            ref={listRef}
+            className="mapview__list"
+            role="listbox"
+            aria-label="Evidence pins and clusters"
+            tabIndex={0}
+            onKeyDown={onListKeyDown}
+          >
+            {listItems.map((f, index) => (
+              <li key={featureKey(f, index)}>
+                <button
+                  type="button"
+                  role="option"
+                  data-index={index}
+                  aria-selected={focusedIndex === index}
+                  className={`mapview__list-item${focusedIndex === index ? ' mapview__list-item--focused' : ''}`}
+                  onClick={() => {
+                    setFocusedIndex(index);
+                    activateFeature(f);
+                  }}
+                  onFocus={() => setFocusedIndex(index)}
+                >
+                  {featureLabel(f)}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )}
+
       <div
         ref={containerRef}
         className={`mapview${prefersReducedMotion() ? ' mapview--reduced-motion' : ''}`}
         aria-label="Map of geolocated confirmed evidence"
+        aria-describedby="map-a11y-hint"
         role="application"
       />
+      <p id="map-a11y-hint" className="sr-only">
+        Interactive map. Use the evidence list button for keyboard access to pins and clusters in the current view.
+      </p>
     </div>
   );
 }

@@ -22,7 +22,7 @@ test('map loads, controls drive state, deep-link restores', async ({ page }) => 
   await expect(page.locator('.control__value')).toContainText('OSINT');
 
   // Counter ↔ map navigation preserves date.
-  await page.getByRole('link', { name: '← Counter' }).click();
+  await page.getByRole('link', { name: 'Back to casualty counter' }).click();
   await expect(page).toHaveURL(/\/c\/ukraine\/2023-06-01/);
 });
 
@@ -30,4 +30,19 @@ test('deep link restores map state', async ({ page }) => {
   await page.goto('/m/ukraine/2023-06-01?threshold=osint&category=wounded');
   await expect(page.locator('#asOf')).toHaveValue('2023-06-01');
   await expect(page.locator('.control__value')).toContainText('OSINT');
+});
+
+test('keyboard list fallback toggles and is navigable', async ({ page }) => {
+  await page.goto('/map');
+
+  const toggle = page.getByRole('button', { name: 'Show evidence list' });
+  await expect(toggle).toBeVisible();
+  await toggle.click();
+  await expect(page.getByRole('button', { name: 'Hide evidence list' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Evidence in current map view' })).toBeVisible();
+
+  const listbox = page.getByRole('listbox', { name: 'Evidence pins and clusters' });
+  await listbox.focus();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Show evidence list' })).toBeFocused();
 });
