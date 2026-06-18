@@ -3,7 +3,7 @@ import { Counter } from '@/components/Counter';
 import { MapBackdrop } from '@/components/MapBackdrop';
 import { SiteFooter } from '@/components/SiteFooter';
 import { getCountsData } from '@/lib/counts';
-import { getMapPins } from '@/lib/map';
+import { getMapPins } from '@/lib/map-pins';
 import { todayUtc } from '@/lib/dates';
 import { DEFAULT_THEATER } from '@peaceclock/db';
 import { SITE_URL } from '@/lib/site';

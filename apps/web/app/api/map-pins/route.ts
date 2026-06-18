@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { MapPinsResponse } from '@peaceclock/api-types';
 import { Theater } from '@peaceclock/api-types';
-import { getMapPins } from '@/lib/map';
+import { getMapPins } from '@/lib/map-pins';
 import { DEFAULT_THEATER } from '@peaceclock/db';
 import { todayUtc } from '@/lib/dates';
 

@@ -42,7 +42,7 @@ export {
   isTheaterSlug,
 } from './theater.config';
 export type { TheaterSlug, TheaterConfig, TheaterBounds, TheaterSide } from './theater.config';
-export { queryMap } from './map-query';
+export { queryMap, mapCacheKey } from './map-query';
 export type { MapQueryParams } from './map-query';
 export {
   retrieveCandidates,

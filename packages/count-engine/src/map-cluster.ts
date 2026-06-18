@@ -34,3 +34,27 @@ export function gridCell(z: number, pixelRadius: number = DEFAULT_PIXEL_RADIUS):
   // Coarser than DBSCAN eps so world zoom stays cheap (≈ a tile-ish bucket).
   return eps(z, pixelRadius) * 2;
 }
+
+/** Web Mercator tile width in 3857 meters at zoom z (512px tiles). */
+export function tileSizeMeters(z: number): number {
+  return EARTH_CIRCUMFERENCE_M / Math.pow(2, z);
+}
+
+/**
+ * Snap a viewport bbox to the Web Mercator tile grid at zoom z.
+ * Expands min corners down and max corners up so neighboring pans share the
+ * same quantized envelope — used for `/api/map` CDN cache keys (EDD §9.3).
+ */
+export function snapBboxToTileGrid(
+  bbox: [number, number, number, number],
+  zoom: number,
+): [number, number, number, number] {
+  const cell = tileSizeMeters(zoom);
+  const [minX, minY, maxX, maxY] = bbox;
+  return [
+    Math.floor(minX / cell) * cell,
+    Math.floor(minY / cell) * cell,
+    Math.ceil(maxX / cell) * cell,
+    Math.ceil(maxY / cell) * cell,
+  ];
+}

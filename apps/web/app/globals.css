@@ -94,19 +94,68 @@ html, body {
     linear-gradient(to bottom, var(--line) 1px, transparent 1px);
   background-size: 8.333% 16.666%; opacity: .25;
 }
+/* Counter backdrop pins — §5.3 sprite sheet at reduced opacity */
+.backdrop__vignette {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 70% 60% at 52% 42%, transparent 35%, rgba(11, 13, 16, .55) 100%);
+}
 .pin {
-  position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px;
+  position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px;
   border-radius: 50%; border: 1px solid rgba(0,0,0,.5);
 }
-.pin--official { background: #5ad17f; }
-.pin--confirmed { background: var(--accent); }
-.pin--osint { background: var(--civilian); }
-.pin--ai_corroborated { background: var(--warn); }
+.pin--sprite {
+  width: 16px; height: 16px; margin: -8px 0 0 -8px;
+  border: none; border-radius: 0;
+  background-image: url('/sprites/peaceclock-pins.png');
+  background-repeat: no-repeat;
+  background-size: 320px 128px;
+  opacity: .72;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.45));
+}
+/* Base glyph (col 0) tinted via CSS filters per side */
+.pin--sprite.pin--ua {
+  background-position: 0 0;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.45))
+    brightness(0) saturate(100%) invert(52%) sepia(79%) saturate(462%) hue-rotate(182deg) brightness(96%);
+}
+.pin--sprite.pin--russia {
+  background-position: 0 0;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.45))
+    brightness(0) saturate(100%) invert(48%) sepia(18%) saturate(1049%) hue-rotate(314deg) brightness(92%);
+}
+/* Tier ring overlays (cols 1–4) via ::after */
+.pin--sprite::after {
+  content: '';
+  position: absolute; inset: -2px;
+  background-image: url('/sprites/peaceclock-pins.png');
+  background-repeat: no-repeat;
+  background-size: 320px 128px;
+  pointer-events: none;
+}
+.pin--sprite.pin--official::after { background-position: -64px 0; filter: brightness(0) saturate(100%) invert(72%) sepia(47%) saturate(462%) hue-rotate(8deg); }
+.pin--sprite.pin--confirmed::after { background-position: -128px 0; filter: brightness(0) invert(1); }
+.pin--sprite.pin--osint::after { background-position: -192px 0; filter: brightness(0) saturate(100%) invert(78%) sepia(24%) saturate(748%) hue-rotate(122deg); }
+.pin--sprite.pin--ai_corroborated::after { background-position: -256px 0; filter: brightness(0) saturate(100%) invert(68%) sepia(56%) saturate(648%) hue-rotate(358deg); }
+.pin--sprite.pin--ai_corroborated::before {
+  content: '';
+  position: absolute; top: -3px; right: -4px; width: 8px; height: 8px;
+  background-image: url('/sprites/peaceclock-pins.png');
+  background-position: 0 -64px;
+  background-size: 320px 128px;
+  filter: brightness(0) saturate(100%) invert(68%) sepia(56%) saturate(648%) hue-rotate(358deg);
+}
 .backdrop__empty { color: var(--muted); font-size: .85rem; text-align: center; margin-top: .5rem; }
 
 /* View 2 — full-screen map */
 .maproot { position: fixed; inset: 0; }
+.mapview-wrap { position: absolute; inset: 0; }
 .mapview { position: absolute; inset: 0; }
+.mapview__sprite-error {
+  position: absolute; z-index: 4; left: .75rem; right: 4.5rem; bottom: .75rem;
+  background: rgba(20, 24, 29, .94); border: 1px solid var(--warn); border-radius: 8px;
+  color: var(--fg); font-size: .85rem; padding: .6rem .85rem;
+}
+.mapview--reduced-motion .maplibregl-canvas { animation: none !important; }
 .maproot__controls {
   position: absolute; z-index: 5; top: .75rem; left: .75rem; right: 4rem;
   display: flex; flex-wrap: wrap; gap: .75rem; align-items: flex-end;

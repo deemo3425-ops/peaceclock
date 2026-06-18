@@ -1,0 +1,60 @@
+{
+  "peaceclock": {
+    "pin-base": {
+      "width": 64,
+      "height": 64,
+      "x": 0,
+      "y": 0,
+      "pixelRatio": 2,
+      "sdf": true
+    },
+    "ring-official": {
+      "width": 64,
+      "height": 64,
+      "x": 64,
+      "y": 0,
+      "pixelRatio": 2,
+      "sdf": true
+    },
+    "ring-confirmed": {
+      "width": 64,
+      "height": 64,
+      "x": 128,
+      "y": 0,
+      "pixelRatio": 2,
+      "sdf": true
+    },
+    "ring-osint": {
+      "width": 64,
+      "height": 64,
+      "x": 192,
+      "y": 0,
+      "pixelRatio": 2,
+      "sdf": true
+    },
+    "ring-ai_corroborated": {
+      "width": 64,
+      "height": 64,
+      "x": 256,
+      "y": 0,
+      "pixelRatio": 2,
+      "sdf": true
+    },
+    "badge-provisional": {
+      "width": 64,
+      "height": 64,
+      "x": 0,
+      "y": 64,
+      "pixelRatio": 2,
+      "sdf": true
+    },
+    "cluster-disc": {
+      "width": 64,
+      "height": 64,
+      "x": 64,
+      "y": 64,
+      "pixelRatio": 2,
+      "sdf": true
+    }
+  }
+}
