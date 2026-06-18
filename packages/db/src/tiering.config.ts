@@ -92,13 +92,13 @@ export const CONTRADICTION_CLEAR_MARGIN = 2;
  * Default monthly AI budget cap (T0.5, M1).
  * Can be overridden per deployment; tuned in M7 based on real usage.
  */
-export const BUDGET_CAP_USD = 500; // v1 starting point
+export const BUDGET_CAP_USD = 30; // prod launch cap (≤$50/mo total budget)
 
 /**
  * Default daily Opus cap (M3·T4.1, EDD §8.1).
  * Prevents runaway Opus costs during escalation storms.
  */
-export const OPUS_DAILY_CAP_USD = 100;
+export const OPUS_DAILY_CAP_USD = 10;
 
 /**
  * Default headline threshold (PRD §3, M2/M6).
