@@ -8,7 +8,11 @@ import { getDb } from './index';
 import { evidenceTable } from '../schema';
 import { embed } from './embeddings';
 import { applyAggDelta } from './agg-delta';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
+
+function toVectorLiteral(embedding: number[]): string {
+  return `[${embedding.join(',')}]`;
+}
 
 /**
  * Raw evidence from a source (normalized).
@@ -112,8 +116,8 @@ export async function ingestEvidence(
       publishedAt: evidence.publishedAt,
       raw: JSON.stringify(evidence.raw),
       contentHash: hash,
-      embedding,
-      geom: 'POINT(0 0)', // placeholder; AI/audit fills in
+      embedding: sql`${toVectorLiteral(embedding)}::vector`,
+      geom: sql`ST_GeogFromText('POINT(0 0)')`, // placeholder; AI/audit fills in
       corroStatus: isOfficial ? 'done' : 'pending',
     })
     .returning({ id: evidenceTable.id });

@@ -10,6 +10,15 @@ const VOYAGE_API_BASE = 'https://api.voyageai.com/v1';
 const MODEL = 'voyage-3'; // Anthropic-recommended
 const DIMENSIONS = 1024;
 
+function useStubEmbeddings(): boolean {
+  const key = process.env.VOYAGE_API_KEY;
+  return (
+    process.env.CI_STUB_EMBEDDINGS === '1' ||
+    key === 'fake' ||
+    key === 'test'
+  );
+}
+
 function getVoyageApiKey(): string {
   const key = process.env.VOYAGE_API_KEY;
   if (!key) {
@@ -28,6 +37,13 @@ export interface EmbeddingResult {
  * T3.1: batching, retry/backoff handled externally (via adapter).
  */
 export async function embed(text: string): Promise<EmbeddingResult> {
+  if (useStubEmbeddings()) {
+    return {
+      embedding: Array.from({ length: DIMENSIONS }, () => 0),
+      tokens: 0,
+    };
+  }
+
   const apiKey = getVoyageApiKey();
 
   const response = await fetch(`${VOYAGE_API_BASE}/embeddings`, {
