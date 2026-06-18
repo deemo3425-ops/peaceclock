@@ -21,6 +21,7 @@
     "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "@playwright/test": "^1.48.0",
     "@types/node": "^20.0.0",
     "@types/react": "^19.0.0",

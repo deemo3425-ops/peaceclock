@@ -63,16 +63,22 @@ export function Counter({ data, theater, initialAsOf, initialThreshold, initialC
   }, [matrix, category, threshold, asOf]);
 
   return (
-    <main className="counter">
+    <main className="counter" aria-labelledby="counter-title">
       <header className="counter__head">
-        <h1>PeaceClock</h1>
+        <h1 id="counter-title">PeaceClock</h1>
         <p className="counter__sub">
           Confirmed casualties of the war in Ukraine — a lower bound, counted only when evidence meets the bar.
         </p>
-        <a className="maproot__nav" href={`/m/${theater}/${asOf}`}>View map →</a>
+        <a
+          className="maproot__nav"
+          href={`/m/${theater}/${asOf}`}
+          aria-label={`View geolocated evidence map as of ${asOf}`}
+        >
+          View map →
+        </a>
       </header>
 
-      <div className="counter__controls">
+      <div className="counter__controls" role="toolbar" aria-label="Counter filters">
         <DateController asOf={asOf} onChange={onDate} />
         <CategoryToggle category={category} onChange={onCategory} />
         <ThresholdSlider threshold={threshold} onChange={onThreshold} />

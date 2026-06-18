@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { EvidenceDetail, MapFeature } from '@peaceclock/api-types';
 import { Category, Tier } from '@peaceclock/api-types';
 import { MapView } from './MapView';
@@ -28,6 +28,7 @@ export function MapApp({ theater, initialAsOf, initialThreshold, initialCategory
   const [category, setCategory] = useState<Category>(initialCategory ?? Category.KILLED);
   const [detail, setDetail] = useState<EvidenceDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   const syncUrl = useCallback((d: string, t: Tier, c: Category) => {
     if (typeof window === 'undefined') return;
@@ -50,10 +51,14 @@ export function MapApp({ theater, initialAsOf, initialThreshold, initialCategory
     }
   }, []);
 
+  useEffect(() => {
+    if (detail || loadingDetail) closeRef.current?.focus();
+  }, [detail, loadingDetail]);
+
   return (
-    <div className="maproot">
-      <div className="maproot__controls">
-        <a className="maproot__nav" href={`/c/${theater}/${asOf}`}>← Counter</a>
+    <main className="maproot" aria-label="Geolocated evidence map">
+      <div className="maproot__controls" role="toolbar" aria-label="Map filters">
+        <a className="maproot__nav" href={`/c/${theater}/${asOf}`} aria-label="Back to casualty counter">← Counter</a>
         <DateController asOf={asOf} onChange={(d) => { setAsOf(d); syncUrl(d, threshold, category); }} />
         <CategoryToggle category={category} onChange={(c) => { setCategory(c); syncUrl(asOf, threshold, c); }} />
         <ThresholdSlider threshold={threshold} onChange={(t) => { setThreshold(t); syncUrl(asOf, t, category); }} />
@@ -62,9 +67,17 @@ export function MapApp({ theater, initialAsOf, initialThreshold, initialCategory
       <MapView asOf={asOf} threshold={threshold} category={category} onPinClick={onPinClick} />
 
       {(detail || loadingDetail) && (
-        <aside className="pindetail" role="region" aria-label="Evidence detail">
-          <button className="pindetail__close" onClick={() => setDetail(null)} aria-label="Close detail">×</button>
-          {loadingDetail && <p>Loading…</p>}
+        <aside className="pindetail" role="dialog" aria-label="Evidence detail" aria-modal="false">
+          <button
+            ref={closeRef}
+            type="button"
+            className="pindetail__close"
+            onClick={() => { setDetail(null); setLoadingDetail(false); }}
+            aria-label="Close evidence detail"
+          >
+            ×
+          </button>
+          {loadingDetail && <p role="status" aria-live="polite">Loading…</p>}
           {detail && (
             <>
               <h2>{SIDE_LABEL[detail.side]} · {TIER_LABEL[detail.tier]}</h2>
@@ -83,6 +96,6 @@ export function MapApp({ theater, initialAsOf, initialThreshold, initialCategory
           )}
         </aside>
       )}
-    </div>
+    </main>
   );
 }
