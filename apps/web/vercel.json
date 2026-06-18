@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/corroborate",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/ingest",
+      "schedule": "0 6 * * *"
     }
   ]
 }

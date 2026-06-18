@@ -4,19 +4,11 @@
  * Cost is tracked via recordModelCost().
  */
 
-import { recordModelCost } from './cost';
+import crypto from 'crypto';
 
 const VOYAGE_API_BASE = 'https://api.voyageai.com/v1';
 const MODEL = 'voyage-3'; // Anthropic-recommended
 const DIMENSIONS = 1024;
-
-function getVoyageApiKey(): string {
-  const key = process.env.VOYAGE_API_KEY;
-  if (!key) {
-    throw new Error('VOYAGE_API_KEY environment variable not set');
-  }
-  return key;
-}
 
 export interface EmbeddingResult {
   embedding: number[];
@@ -27,8 +19,18 @@ export interface EmbeddingResult {
  * Embed text using Voyage API.
  * T3.1: batching, retry/backoff handled externally (via adapter).
  */
+/** Deterministic stub embedding when VOYAGE_API_KEY is absent (CI / local). */
+function stubEmbedding(text: string): EmbeddingResult {
+  const hash = crypto.createHash('sha256').update(text).digest();
+  const embedding = Array.from({ length: DIMENSIONS }, (_, i) => (hash[i % hash.length]! / 255) * 2 - 1);
+  return { embedding, tokens: Math.ceil(text.length / 4) };
+}
+
 export async function embed(text: string): Promise<EmbeddingResult> {
-  const apiKey = getVoyageApiKey();
+  const apiKey = process.env.VOYAGE_API_KEY;
+  if (!apiKey) {
+    return stubEmbedding(text);
+  }
 
   const response = await fetch(`${VOYAGE_API_BASE}/embeddings`, {
     method: 'POST',

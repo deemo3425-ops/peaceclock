@@ -5,9 +5,9 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp -r src/adapters/fixtures dist/src/adapters/fixtures",
     "migrate": "drizzle-kit migrate",
-    "migrate:generate": "drizzle-kit generate:pg",
+    "migrate:generate": "drizzle-kit generate",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

@@ -8,7 +8,9 @@
 import { describe, it, expect } from 'vitest';
 import { getDb } from '../index';
 import { ingestEvidence } from '../ingestion';
+import { runIngestion } from '../adapters';
 import { casualtyTable, dailyAggTable } from '../../schema';
+import { eq } from 'drizzle-orm';
 
 describe('M1 Integration', () => {
   it('should ingest fixture, embed, and aggregate correctly', async () => {
@@ -19,16 +21,39 @@ describe('M1 Integration', () => {
       url: 'https://example.com/report',
       publishedAt: '2022-03-01',
       text: 'OHCHR report: 10 civilians killed in Kharkiv region on 2022-03-01.',
-      raw: { source: 'ohchr', region: 'Kharkiv' },
+      raw: {
+        source: 'ohchr',
+        region: 'Kharkiv',
+        casualty: {
+          side: 'ua_coalition',
+          category: 'killed',
+          audience: 'civilian',
+          eventDate: '2022-03-01',
+          count: 10,
+          tier: 'official',
+        },
+      },
     };
 
     // Ingest as official-tier
     await ingestEvidence(fixture, true);
 
-    // Verify evidence persisted
+    // Verify casualty persisted at official tier
     const db = getDb();
-    const evidences = await db.select().from(casualtyTable).limit(1);
-    expect(evidences.length).toBeGreaterThan(0);
+    const casualties = await db
+      .select()
+      .from(casualtyTable)
+      .where(eq(casualtyTable.tier, 'official'))
+      .limit(1);
+    expect(casualties.length).toBeGreaterThan(0);
+    expect(casualties[0]!.count).toBe(10);
+
+    const aggs = await db
+      .select()
+      .from(dailyAggTable)
+      .where(eq(dailyAggTable.tier, 'official'))
+      .limit(1);
+    expect(aggs.length).toBeGreaterThan(0);
   });
 
   it('should maintain aggregate consistency on tier changes', async () => {
@@ -49,8 +74,19 @@ describe('M1 Integration', () => {
       publisher: 'OHCHR',
       url: 'https://example.com/report2',
       publishedAt: '2022-03-02',
-      text: 'Second OHCHR report: 5 civilians.',
-      raw: { source: 'ohchr', region: 'Lviv' },
+      text: 'Second OHCHR report: 5 civilians killed in Lviv on 2022-03-02.',
+      raw: {
+        source: 'ohchr',
+        region: 'Lviv',
+        casualty: {
+          side: 'ua_coalition',
+          category: 'killed',
+          audience: 'civilian',
+          eventDate: '2022-03-02',
+          count: 5,
+          tier: 'official',
+        },
+      },
     };
 
     const db = getDb();
@@ -66,5 +102,34 @@ describe('M1 Integration', () => {
 
     // Count should not increase on second ingest
     expect(afterFirstIngest).toBe(afterSecondIngest);
+  });
+
+  it('should run fixture adapters producing official OHCHR + confirmed RU rows', async () => {
+    const db = getDb();
+    const beforeOfficial = (await db.select().from(casualtyTable).where(eq(casualtyTable.tier, 'official'))).length;
+    const beforeConfirmed = (await db.select().from(casualtyTable).where(eq(casualtyTable.tier, 'confirmed'))).length;
+
+    const results = await runIngestion();
+    expect(results.length).toBe(2);
+    expect(results.some((r) => r.adapter === 'OHCHR' && r.fetched > 0)).toBe(true);
+    expect(results.some((r) => r.adapter === 'RU-Confirmed (Mediazona/BBC)' && r.fetched > 0)).toBe(true);
+
+    const afterOfficial = (await db.select().from(casualtyTable).where(eq(casualtyTable.tier, 'official'))).length;
+    const afterConfirmed = (await db.select().from(casualtyTable).where(eq(casualtyTable.tier, 'confirmed'))).length;
+    expect(afterOfficial).toBeGreaterThan(beforeOfficial);
+    expect(afterConfirmed).toBeGreaterThan(beforeConfirmed);
+
+    const aggs = await db.select().from(dailyAggTable).limit(20);
+    expect(aggs.some((a) => a.tier === 'official')).toBe(true);
+    expect(aggs.some((a) => a.tier === 'confirmed')).toBe(true);
+
+    // Idempotent re-run: watermark advanced, no new rows
+    const officialMid = afterOfficial;
+    const confirmedMid = afterConfirmed;
+    await runIngestion();
+    const officialEnd = (await db.select().from(casualtyTable).where(eq(casualtyTable.tier, 'official'))).length;
+    const confirmedEnd = (await db.select().from(casualtyTable).where(eq(casualtyTable.tier, 'confirmed'))).length;
+    expect(officialEnd).toBe(officialMid);
+    expect(confirmedEnd).toBe(confirmedMid);
   });
 });

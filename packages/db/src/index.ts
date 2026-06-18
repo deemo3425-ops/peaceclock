@@ -92,3 +92,21 @@ export {
   fetchResults,
 } from './corroboration/batch';
 export type { ScoringItem, ParsedResult, BatchStatus } from './corroboration/batch';
+export {
+  ingestEvidence,
+  runAdapters,
+  type NormalizedEvidence,
+  type SourceAdapter,
+  type CasualtyPayload,
+  type AdapterRunResult,
+} from './ingestion';
+export { getWatermark, setWatermark, defaultWatermark } from './watermark';
+export {
+  ohchrAdapter,
+  backfillOhchr,
+  ruConfirmedAdapter,
+  uaConfirmedAdapter,
+  UA_SOURCE_BLOCKER,
+  defaultIngestAdapters,
+  runIngestion,
+} from './adapters';
