@@ -40,7 +40,7 @@ export function ThresholdSlider({ threshold, onChange }: Props) {
       <output htmlFor="threshold" className="control__value">
         {TIER_LABEL[threshold]}
         {threshold === Tier.AI_CORROBORATED && (
-          <span className="badge badge--provisional"> provisional — populated once AI corroboration ships (M3)</span>
+          <span className="badge badge--provisional"> provisional — human audit required</span>
         )}
       </output>
     </div>

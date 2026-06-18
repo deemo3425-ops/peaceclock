@@ -1,5 +1,12 @@
 import type { Metadata } from 'next';
-import { MATCH_WEIGHTS, TIER_THRESHOLDS, SCORE_FLOOR } from '@peaceclock/db';
+import {
+  CONTRADICTION_CLEAR_MARGIN,
+  DEFAULT_HEADLINE_THRESHOLD,
+  MATCH_WEIGHTS,
+  TIER_RANK,
+  TIER_THRESHOLDS,
+  SCORE_FLOOR,
+} from '@peaceclock/db';
 import { SiteFooter } from '@/components/SiteFooter';
 
 export const metadata: Metadata = {
@@ -7,12 +14,28 @@ export const metadata: Metadata = {
   description: 'How PeaceClock authenticates, tiers, and counts casualty evidence.',
 };
 
-const TIERS: { name: string; def: string }[] = [
-  { name: 'Official', def: 'Direct government or OHCHR reports admitted via the source allowlist.' },
-  { name: 'Confirmed', def: 'Named-dead records from reputable sources (e.g. Mediazona, memorials).' },
-  { name: 'OSINT', def: 'Cross-corroborated reports — ≥2 corroborators, no contradictions.' },
-  { name: 'AI-corroborated', def: 'Provisional tier from Claude when evidence passes semantic matching but lacks full confirmation. Counts immediately; queued for human audit.' },
-];
+const TIER_DEFS: Record<keyof typeof TIER_RANK, { name: string; def: string }> = {
+  official: {
+    name: 'Official',
+    def: 'Direct government or OHCHR reports admitted via the source allowlist.',
+  },
+  confirmed: {
+    name: 'Confirmed',
+    def: 'Named-dead records from reputable sources (e.g. Mediazona, memorials).',
+  },
+  osint: {
+    name: 'OSINT',
+    def: 'Cross-corroborated reports — ≥2 corroborators, no contradictions.',
+  },
+  ai_corroborated: {
+    name: 'AI-corroborated',
+    def: 'Provisional tier from Claude when evidence passes semantic matching but lacks full confirmation. Counts immediately; queued for human audit.',
+  },
+};
+
+const TIERS = (Object.keys(TIER_RANK) as (keyof typeof TIER_RANK)[])
+  .sort((a, b) => TIER_RANK[b] - TIER_RANK[a])
+  .map((key) => TIER_DEFS[key]);
 
 /** Methodology (M5·T0.3). Thresholds/weights are read from tiering.config so the
  *  page cannot drift from the code that actually tiers evidence. Static. */
@@ -20,12 +43,16 @@ export default function MethodologyPage() {
   const w = MATCH_WEIGHTS;
   const osint = TIER_THRESHOLDS.osint;
   const ai = TIER_THRESHOLDS.aiCorroborated;
+  const gray = TIER_THRESHOLDS.grayBand;
+  const nearDup = TIER_THRESHOLDS.nearDup;
+  const headline = DEFAULT_HEADLINE_THRESHOLD === 'confirmed' ? 'Official + Confirmed' : 'Official';
   return (
     <main className="prose">
       <h1>Methodology</h1>
       <p>
         PeaceClock publishes a <strong>lower bound</strong> on casualties: a death is counted only when
-        evidence clears an explicit authentication bar. The headline defaults to Official + Confirmed.
+        evidence clears an explicit authentication bar. The headline defaults to <strong>{headline}</strong>{' '}
+        (<code>DEFAULT_HEADLINE_THRESHOLD = {DEFAULT_HEADLINE_THRESHOLD}</code>).
       </p>
 
       <h2>Authentication tiers</h2>
@@ -52,6 +79,10 @@ export default function MethodologyPage() {
         {osint.maxContradictions} contradictions. AI-corroborated applies for{' '}
         <code>{ai.matchScoreMin} ≤ s &lt; {ai.matchScoreMax}</code> with ≥{ai.minCorroborators} corroborator.
         Dedup/merge triggers at <code>s ≥ {TIER_THRESHOLDS.dedup}</code> against an already-counted casualty.
+        Near-duplicate matches in <code>{nearDup.matchScoreMin} ≤ s &lt; {nearDup.matchScoreMax}</code> escalate
+        for review. The gray band <code>{gray.matchScoreMin} ≤ s &lt; {gray.matchScoreMax}</code> also escalates
+        to Opus. Contradictions are only outweighed when corroborators exceed contradictions by at least{' '}
+        <code>{CONTRADICTION_CLEAR_MARGIN}</code>.
       </p>
 
       <h2>AI corroboration &amp; audit</h2>

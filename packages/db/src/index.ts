@@ -24,6 +24,7 @@ export {
   MATCH_WEIGHTS,
   TIER_THRESHOLDS,
   SCORE_FLOOR,
+  CONTRADICTION_CLEAR_MARGIN,
   DEFAULT_HEADLINE_THRESHOLD,
   computeMatchScore,
 } from './tiering.config';

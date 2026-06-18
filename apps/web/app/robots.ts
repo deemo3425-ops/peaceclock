@@ -1,11 +1,14 @@
 import type { MetadataRoute } from 'next';
+import { SITE_URL } from '@/lib/site';
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://peaceclock.org';
-
-/** Robots (M5·T1.2). Crawlable; admin/cron paths disallowed. */
+/** Robots (M5·T1.2). Crawlable; admin/cron paths disallowed; OG image allowed for previews. */
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: { userAgent: '*', allow: '/', disallow: ['/audit', '/api/'] },
-    sitemap: `${BASE}/sitemap.xml`,
+    rules: {
+      userAgent: '*',
+      allow: ['/', '/api/og'],
+      disallow: ['/audit', '/api/'],
+    },
+    sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

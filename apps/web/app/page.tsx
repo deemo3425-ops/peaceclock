@@ -5,15 +5,41 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { getCountsData } from '@/lib/counts';
 import { getMapPins } from '@/lib/map';
 import { todayUtc } from '@/lib/dates';
+import { SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 
+const TITLE = 'PeaceClock — Confirmed casualties of the war in Ukraine';
+const DESCRIPTION =
+  'A transparent, audited lower-bound count of confirmed casualties of the war in Ukraine, with every figure linked to its source.';
+
 export const metadata: Metadata = {
-  title: 'PeaceClock — Confirmed casualties of the war in Ukraine',
-  description:
-    'A transparent, audited lower-bound count of confirmed casualties of the war in Ukraine, with every figure linked to its source.',
-  openGraph: { images: ['/api/og'] },
-  twitter: { card: 'summary_large_image', images: ['/api/og'] },
+  metadataBase: new URL(SITE_URL),
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: '/',
+    siteName: 'PeaceClock',
+    title: TITLE,
+    description: DESCRIPTION,
+    images: [
+      {
+        url: '/api/og',
+        width: 1200,
+        height: 630,
+        alt: 'PeaceClock live confirmed casualty totals',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ['/api/og'],
+  },
 };
 
 /** Marketing landing + live counter (M5·T0.2). Counter renders server-side. */

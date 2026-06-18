@@ -135,3 +135,61 @@ html, body {
   .matrix__table th, .matrix__table td { padding: .4rem .35rem; }
   .counter__controls { flex-direction: column; align-items: stretch; }
 }
+
+/* Marketing — landing hero, prose pages, footer (M5) */
+.hero {
+  max-width: 980px; margin: 0 auto; padding: 2.5rem 1.25rem 1rem;
+}
+.hero__eyebrow {
+  margin: 0 0 .5rem; font-size: .8rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .08em;
+}
+.hero__title { margin: 0 0 .75rem; font-size: clamp(2rem, 5vw, 2.75rem); letter-spacing: -.02em; }
+.hero__lede { margin: 0 0 1rem; color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.hero__lede strong { color: var(--fg); }
+.hero__cta { margin: 0; display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; }
+.hero__cta a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.hero__cta a:hover { text-decoration: underline; }
+
+.prose {
+  max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem 1rem;
+}
+.prose h1 { margin: 0 0 1rem; font-size: 1.75rem; }
+.prose h2 { margin: 2rem 0 .75rem; font-size: 1.2rem; }
+.prose p, .prose li { color: var(--muted); line-height: 1.6; }
+.prose strong, .prose h1, .prose h2 { color: var(--fg); }
+.prose code {
+  font-size: .9em; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 4px; padding: .1em .35em;
+}
+
+.sitefooter {
+  max-width: 980px; margin: 2rem auto 2.5rem; padding: 1.5rem 1.25rem 0;
+  border-top: 1px solid var(--line);
+}
+.sitefooter__nav {
+  display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; margin-bottom: 1.25rem;
+}
+.sitefooter__nav a { color: var(--accent); text-decoration: none; font-size: .9rem; }
+.sitefooter__nav a:hover { text-decoration: underline; }
+.sitefooter__note { margin: 1rem 0 0; color: var(--muted); font-size: .85rem; max-width: 62ch; }
+
+.badges-wrap { margin: .5rem 0 0; }
+.badges__heading {
+  margin: 0 0 .6rem; font-size: .8rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.badges {
+  display: flex; flex-wrap: wrap; gap: .6rem; margin: 0; padding: 0; list-style: none;
+}
+.badge-link {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .45rem .85rem; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--fg); font-size: .85rem; text-decoration: none;
+}
+a.badge-link:hover { border-color: var(--accent); color: var(--accent); }
+.badge-link--soon { color: var(--muted); cursor: default; }
+.badge-link__soon {
+  font-size: .75rem; color: var(--warn); text-transform: uppercase; letter-spacing: .04em;
+}
+.badges__note { margin: .6rem 0 0; color: var(--muted); font-size: .8rem; }

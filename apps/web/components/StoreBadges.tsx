@@ -17,20 +17,43 @@ const STORES: { key: keyof typeof LINKS; label: string }[] = [
 ];
 
 export function StoreBadges() {
+  const anyLive = STORES.some(({ key }) => Boolean(LINKS[key]));
+
   return (
-    <ul className="badges" aria-label="Mobile and desktop apps">
-      {STORES.map(({ key, label }) => {
-        const href = LINKS[key];
-        return (
-          <li key={key}>
-            {href ? (
-              <a className="badge-link" href={href} target="_blank" rel="noreferrer noopener">{label}</a>
-            ) : (
-              <span className="badge-link badge-link--soon" aria-disabled="true">{label} · coming soon</span>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+    <div className="badges-wrap">
+      <p className="badges__heading">Get the app</p>
+      <ul className="badges" aria-label="Mobile and desktop apps">
+        {STORES.map(({ key, label }) => {
+          const href = LINKS[key];
+          return (
+            <li key={key}>
+              {href ? (
+                <a
+                  className="badge-link"
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  aria-label={`Download PeaceClock on ${label}`}
+                >
+                  {label}
+                </a>
+              ) : (
+                <span
+                  className="badge-link badge-link--soon"
+                  aria-disabled="true"
+                  title="Store listing coming after app launch (M6)"
+                >
+                  {label}
+                  <span className="badge-link__soon">Coming soon</span>
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {!anyLive && (
+        <p className="badges__note">iOS, Android, and macOS apps are in development — links go live at launch.</p>
+      )}
+    </div>
   );
 }
