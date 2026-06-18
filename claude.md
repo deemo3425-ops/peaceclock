@@ -106,4 +106,4 @@ M1–M4 core built (~63%); M5–M7 not started. Full DAG in `docs/EXECUTE-PLAN.m
 - **Phases:** 0 ✓ local env · 1 `gh repo create` + `origin` push · 2 local smoke · 3 prod bootstrap (human-gated).
 - **Neon:** project `peaceclock` (`sweet-surf-34533741`), branches `dev` (local) + `main` (prod at launch); `apps/web/.env.local` wired to `dev`.
 - **Local bootstrap:** `pnpm dev:bootstrap` → `pnpm --filter @peaceclock/web dev` (migrate + SQL seed, $0).
-- **Remote:** `gh repo create` on `deemo3425-ops` (no manual URL paste).
+- **Remote:** https://github.com/deemo3425-ops/peaceclock (`origin/main` @ `cb96dfe`).
