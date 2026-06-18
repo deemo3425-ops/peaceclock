@@ -103,6 +103,17 @@ html, body {
 .cell__sources ul { margin: 0; padding-left: 1rem; }
 .cell__tier { color: var(--muted); text-transform: capitalize; }
 
+.offline-banner {
+  background: var(--warn);
+  color: #1a0f08;
+  border-radius: 8px;
+  padding: .65rem .85rem;
+  margin-bottom: 1rem;
+  font-size: .85rem;
+  line-height: 1.4;
+}
+.offline-banner strong { font-weight: 700; }
+
 .freshness { margin-top: 1.5rem; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 1rem; }
 .freshness strong { color: var(--fg); }
 

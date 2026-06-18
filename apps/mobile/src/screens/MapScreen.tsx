@@ -39,6 +39,8 @@ import {
 } from '../lib/mapSprites';
 import { resolveMapStyle } from '../lib/mapStyle';
 import type { RootTabParamList } from '../navigation/types';
+import { OfflineBanner } from '../components/OfflineBanner';
+import { getCachedMap, mapCacheKey, setCachedMap } from '../offline/cache';
 import { colors, radii, typography } from '../theme/tokens';
 
 const UKRAINE_CENTER: [number, number] = [31.2, 48.4];
@@ -100,6 +102,7 @@ export function MapScreen() {
   const [category, setCategory] = useState<Category>(Category.KILLED);
   const [mapData, setMapData] = useState<MapResponse>(EMPTY_FC);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [offlineCachedAt, setOfflineCachedAt] = useState<string | null>(null);
   const [detail, setDetail] = useState<EvidenceDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
@@ -111,12 +114,30 @@ export function MapScreen() {
     async (northEast: GeoJSON.Position, southWest: GeoJSON.Position, zoomLevel: number) => {
       const bbox = bboxFromVisibleBounds(northEast, southWest);
       const zoom = Math.round(zoomLevel);
+      const cacheKey = mapCacheKey({
+        theater: 'ukraine',
+        asOf,
+        threshold,
+        category,
+        bbox,
+        zoom,
+      });
       try {
         const data = await fetchMap({ theater: 'ukraine', asOf, threshold, category, bbox, zoom });
+        await setCachedMap(cacheKey, data);
         setMapData(data);
         setMapError(null);
+        setOfflineCachedAt(null);
       } catch (err: unknown) {
-        setMapError(err instanceof Error ? err.message : 'Failed to load map data');
+        const cached = await getCachedMap(cacheKey);
+        if (cached) {
+          setMapData(cached.data);
+          setOfflineCachedAt(cached.cachedAt);
+          setMapError(null);
+        } else {
+          setMapError(err instanceof Error ? err.message : 'Failed to load map data');
+          setOfflineCachedAt(null);
+        }
       }
     },
     [asOf, threshold, category],
@@ -176,6 +197,7 @@ export function MapScreen() {
 
   return (
     <View style={styles.root}>
+      <OfflineBanner cachedAt={offlineCachedAt} />
       <MapView
         style={styles.map}
         mapStyle={resolveMapStyle()}

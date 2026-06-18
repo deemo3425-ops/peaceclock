@@ -12,6 +12,7 @@ import { ThresholdSlider } from './ThresholdSlider';
 import { DateController } from './DateController';
 import { CategoryToggle } from './CategoryToggle';
 import { Freshness } from './Freshness';
+import { OfflineBanner } from './OfflineBanner';
 
 interface CounterProps {
   data: CountsResponse;
@@ -64,6 +65,7 @@ export function Counter({ data, theater, initialAsOf, initialThreshold, initialC
 
   return (
     <main className="counter" aria-labelledby="counter-title">
+      <OfflineBanner theater={theater} asOf={asOf} seed={data} />
       <header className="counter__head">
         <h1 id="counter-title">PeaceClock</h1>
         <p className="counter__sub">

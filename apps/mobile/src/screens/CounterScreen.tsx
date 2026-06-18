@@ -21,6 +21,8 @@ import { ThresholdSlider } from '../components/ThresholdSlider';
 import { CategoryToggle } from '../components/CategoryToggle';
 import { CountMatrix } from '../components/CountMatrix';
 import { Freshness } from '../components/Freshness';
+import { OfflineBanner } from '../components/OfflineBanner';
+import { getCachedCounts, setCachedCounts } from '../offline/cache';
 import type { RootTabParamList } from '../navigation/types';
 
 function clampDate(date: string | undefined): string {
@@ -44,6 +46,7 @@ export function CounterScreen() {
   const [raw, setRaw] = useState<CountsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [offlineCachedAt, setOfflineCachedAt] = useState<string | null>(null);
   const [asOf, setAsOf] = useState(initialAsOf);
   const [threshold, setThreshold] = useState<Tier>(DEFAULT_THRESHOLD);
   const [category, setCategory] = useState<Category>(Category.KILLED);
@@ -58,13 +61,24 @@ export function CounterScreen() {
     setError(null);
 
     fetchCounts(theater, todayUtc())
-      .then((data) => {
-        if (!cancelled) setRaw(data);
+      .then(async (data) => {
+        if (cancelled) return;
+        await setCachedCounts(data);
+        setRaw(data);
+        setOfflineCachedAt(null);
+        setError(null);
       })
-      .catch((err: unknown) => {
-        if (!cancelled) {
+      .catch(async (err: unknown) => {
+        if (cancelled) return;
+        const cached = await getCachedCounts();
+        if (cached) {
+          setRaw(cached.data);
+          setOfflineCachedAt(cached.cachedAt);
+          setError(null);
+        } else {
           setError(err instanceof Error ? err.message : 'Failed to load counts');
           setRaw(null);
+          setOfflineCachedAt(null);
         }
       })
       .finally(() => {
@@ -112,7 +126,7 @@ export function CounterScreen() {
     );
   }
 
-  if (error || !data) {
+  if (!data) {
     return (
       <View style={styles.centered}>
         <Text style={styles.errorTitle}>Could not load counts</Text>
@@ -126,6 +140,7 @@ export function CounterScreen() {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+      <OfflineBanner cachedAt={offlineCachedAt} />
       <View style={styles.header}>
         <Text style={styles.title}>PeaceClock</Text>
         <Text style={styles.subtitle}>

@@ -4,6 +4,7 @@ import { buildCountsResponse } from '@peaceclock/count-engine';
 import { queryDailyAgg, querySideFreshness, DEFAULT_THEATER, theaterEpoch, isTheaterSlug } from '@peaceclock/db';
 import { Theater } from '@peaceclock/api-types';
 import { validateEnv } from '@/lib/env';
+import { withSpan } from '@/lib/otel';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -31,16 +32,21 @@ export async function GET(request: NextRequest): Promise<NextResponse<CountsResp
 
   try {
     validateEnv();
-    const [rows, freshness] = await Promise.all([
-      queryDailyAgg(from, asOf, theater),
-      querySideFreshness(theater),
-    ]);
-
-    const body = buildCountsResponse({
-      rows, freshness, asOf, from,
-      theater: theater as Theater,
-      epochStart: epoch,
-    });
+    const body = await withSpan(
+      'api.counts',
+      async () => {
+        const [rows, freshness] = await Promise.all([
+          queryDailyAgg(from, asOf, theater),
+          querySideFreshness(theater),
+        ]);
+        return buildCountsResponse({
+          rows, freshness, asOf, from,
+          theater: theater as Theater,
+          epochStart: epoch,
+        });
+      },
+      { theater, asOf },
+    );
     return NextResponse.json(body, {
       headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
     });

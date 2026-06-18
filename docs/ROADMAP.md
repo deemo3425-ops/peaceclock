@@ -1,8 +1,8 @@
 # PeaceClock — Roadmap
 
-> ## 🟦 100% Defined   ·   🟩 63% Completed   ·   ⬜ 0% Deployed
+> ## 🟦 100% Defined   ·   🟩 68% Completed   ·   ⬜ 0% Deployed
 >
-> _As of 2026-06-16. M1–M2 complete; M3–M4 core built & unit-tested (live-infra E2E pending); M5–M7 ready to build._
+> _As of 2026-06-17. M1–M4 built & tested; M7 observability/offline/launch checklist in progress; M5–M6 ready to build. **Deployed stays 0% until a human confirms each surface is live** — see [LAUNCH-CHECKLIST.md](./LAUNCH-CHECKLIST.md)._
 
 **What the three numbers mean**
 
@@ -10,7 +10,7 @@
 |---|---|
 | **Defined** | Requirements + design + task breakdown exist and are reviewed (PRD / EDD / tasks.md). |
 | **Completed** | Implemented, tested, and merged to `main`. |
-| **Deployed** | Live to users on its target surface(s) — web served, or app live in its store. |
+| **Deployed** | Live to users on its target surface(s) — web served, or app live in its store. **Updated only by humans at launch.** |
 
 Each is a weighted roll-up across milestones (weights = relative effort, sum to 100%). A milestone can be fully *defined* while 0% *completed*; a milestone is only *deployed* once its surface is live.
 
@@ -26,14 +26,14 @@ Each is a weighted roll-up across milestones (weights = relative effort, sum to 
 | M4 | Map / View 2 | 14% | 100% | 85% | 0% | ◑ Core built & unit-tested; live tiles/DB E2E pending |
 | M5 | Promotional website | 8% | 100% | 0% | 0% | Designed + tasked → ready to build |
 | M6 | Apps & store submission | 14% | 100% | 0% | 0% | Designed + tasked → ready to build |
-| M7 | Polish & launch | 10% | 100% | 0% | 0% | Designed + tasked → ready to build |
+| M7 | Polish & launch | 10% | 100% | 50% | 0% | ◑ Offline, observability, launch checklist (PR17) |
 | M8 | Multi-theater expansion | 0% | 100% | 0% | 0% | PRD §6.8 tasked → [tasks-m8.md](./tasks-m8.md) |
-| | **Weighted total** | **100%** | **100%** | **63%** | **0%** | |
+| | **Weighted total** | **100%** | **100%** | **68%** | **0%** | |
 
 Progress bars:
 ```
 Defined    ████████████████████ 100%
-Completed  ████████████▌░░░░░░░  63%
+Completed  █████████████▌░░░░░░  68%
 Deployed   ░░░░░░░░░░░░░░░░░░░░   0%
 ```
 
@@ -41,7 +41,7 @@ Deployed   ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Deployment by surface
 
-"Deployed" is multi-surface (PRD §5.3). None are live yet.
+"Deployed" is multi-surface (PRD §5.3). **None are live yet** — update this table only when a human confirms production traffic or store listing is active.
 
 | Surface | Target milestone | Deployed |
 |---|---|:---:|
@@ -69,16 +69,16 @@ Completed:
 
 Carry-over: UA confirmed-military source decision (PRD §10) blocks real adapter implementation.
 
-### M2 — Counter / View 1 · Defined 100% · Completed 0% · Deployed 0%
-The as-of/windowed count engine (EDD §6) and `/api/counts` (EDD §9.1) are designed and the threshold slider + date scrubber are specified (PRD §5.1). **Fully tasked** in [tasks-m2.md](./tasks-m2.md). First public web surface.
+### M2 — Counter / View 1 · Defined 100% · Completed 100% · Deployed 0%
+The as-of/windowed count engine (EDD §6) and `/api/counts` (EDD §9.1) are built; threshold slider + date scrubber shipped (PRD §5.1). **Built and tested** — first public web surface pending human deploy.
 - Carry-over risk: wounded/missing categories may ship empty pending M1 source coverage; AI-corroborated slider stop is data-less until M3.
 
-### M3 — AI corroboration · Defined 100% · Completed 0% · Deployed 0%
-Match-score thresholds (PRD Appendix A), the batch worker (EDD §8.1), and cost controls (PRD §12) are specified to implementation depth. **Fully tasked** in [tasks-m3.md](./tasks-m3.md). Highest-risk milestone — `writeOutcome` and worker resumability are the long poles.
+### M3 — AI corroboration · Defined 100% · Completed 85% · Deployed 0%
+Match-score thresholds (PRD Appendix A), batch worker (EDD §8.1), and cost controls (PRD §12) are implemented and unit-tested. **Core built** — live-infra E2E pending.
 - Carry-over risk: threshold/cap values are v1 starting points (tunable); audit staffing assumed (PRD §10); multilingual scoring on Cyrillic source text to validate.
 
-### M4 — Map / View 2 · Defined 100% · Completed 0% · Deployed 0%
-`ST_ClusterDBSCAN` clustering + `/api/map` (EDD §9.3) and the web MapLibre client (EDD §9.4) specified to implementation depth. **Fully tasked** in [tasks-m4.md](./tasks-m4.md). Completes the two-view web product.
+### M4 — Map / View 2 · Defined 100% · Completed 85% · Deployed 0%
+`ST_ClusterDBSCAN` clustering + `/api/map` (EDD §9.3) and the web MapLibre client (EDD §9.4) built and unit-tested. **Core built** — live tiles/DB E2E pending.
 - Carry-over risk: tile provider choice (EDD §14) blocks final map config; web↔native cluster parity confirmed in M6.
 
 ### M5 — Promotional website · Defined 100% · Completed 0% · Deployed 0%
@@ -89,8 +89,21 @@ Marketing site + live counter + methodology/about/funding + store badges. **Full
 Expo/RN clients (iOS, Android), MapLibre Native, macOS via the iPad-app path, EAS build/submit, store compliance. **Fully tasked** in [tasks-m6.md](./tasks-m6.md).
 - Carry-over risk: store **review** is the long pole (sensitive-content framing); macOS fidelity is iPad-app for v1.
 
-### M7 — Polish & launch · Defined 100% · Completed 0% · Deployed 0%
-Performance, accessibility, offline, observability, security, and coordinated multi-surface launch consolidated. **Fully tasked** in [tasks-m7.md](./tasks-m7.md).
+### M7 — Polish & launch · Defined 100% · Completed 50% · Deployed 0%
+Performance, accessibility, offline, observability, security, and coordinated multi-surface launch consolidated. **In progress** — [tasks-m7.md](./tasks-m7.md), [LAUNCH-CHECKLIST.md](./LAUNCH-CHECKLIST.md).
+
+Completed (PR16–PR17):
+- WS0–WS1: accessibility audit + performance hardening (axe e2e, Lighthouse targets)
+- WS2: last-known-good banners (web `OfflineBanner`, native offline cache)
+- WS3: `queryPipelineMetrics()` skeleton, OTel span wiring in `/api/counts`
+- WS6: coordinated launch checklist
+
+Remaining:
+- WS2·T2.3: uptime SLO instrumentation + alerting
+- WS3·T3.2: error tracking + pager routing
+- WS4–WS5: security/privacy review, content sign-off
+- WS6·T6.2–T6.3: coordinated launch execution + post-launch watch
+
 - Carry-over risk: app-store approvals gate the app portion of launch; web/promo can launch independently.
 
 ---
@@ -99,6 +112,6 @@ Performance, accessibility, offline, observability, security, and coordinated mu
 
 - **Defined = 100%** — all milestones (M1–M8) are task-broken. M8 is post-launch expansion; M1–M7 are the ship path. Next step is execution: advance **Completed** on remaining M1–M7 carry-overs.
 - **Completed** advances as tasks merge to `main` with tests green; it rolls up from per-task completion within each milestone.
-- **Deployed** advances per surface: web first (M2/M4), then promo site (M5), then the three app stores (M6). Store review is the long pole for app deployment.
+- **Deployed** advances per surface **only when a human confirms go-live** — web first (M2/M4), then promo site (M5), then the three app stores (M6). Store review is the long pole for app deployment. Use [LAUNCH-CHECKLIST.md](./LAUNCH-CHECKLIST.md) sign-off.
 
 > Update cadence: revise the three top-line numbers whenever a milestone's defined/completed state changes or a surface deploys. Keep the leading line authoritative — it's the one thing read at a glance.

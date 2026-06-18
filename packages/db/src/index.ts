@@ -102,6 +102,18 @@ export {
 } from './ingestion';
 export { getWatermark, setWatermark, defaultWatermark } from './watermark';
 export {
+  queryPipelineMetrics,
+  recordIngestMetrics,
+  recordAggMetrics,
+  recordMonthlyMetrics,
+} from './metrics';
+export type {
+  IngestMetrics,
+  AggMetrics,
+  MonthlyMetrics,
+  PipelineMetrics,
+} from './metrics';
+export {
   ohchrAdapter,
   backfillOhchr,
   ruConfirmedAdapter,
