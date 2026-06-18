@@ -91,7 +91,9 @@ db tsc ✓, web `next build` ✓ (13 routes), count-engine 45 tests (incl. 6 map
 
 ### Ship plan · EXECUTE-PLAN.md — LOCKED ✓
 M1–M4 core built (~63%); M5–M7 not started. Full DAG in `docs/EXECUTE-PLAN.md` (17 PRs, PR1→PR17).
+- **Baseline:** `e3b3ad2` — M2–M4 WIP committed to `main` (unblocks execute-plan worktrees).
+- **Execute-plan PLAN_ID:** `41662179` — **17/17 merged to `main`** @ `c474179` (PR17 + PR6 worker-e2e). Worktrees retained under `/tmp/grok-exec-wt-41662179/`.
 - **Scope:** Ukraine theater only; M8 post-launch (separate `/execute-plan` run → `tasks-m8.md`).
 - **Level-0 parallel:** PR1 migrations, PR2 security/env, PR7 pin sprites.
 - **P0 before ingest:** worker fixes (PR3), fail-closed cron/audit (PR2).
-- **Run:** `/execute-plan docs/EXECUTE-PLAN.md --dry-run` then `--concurrency 4`.
+- **Run:** `/execute-plan docs/EXECUTE-PLAN.md --resume 41662179 --concurrency 4`.
