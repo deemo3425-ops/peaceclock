@@ -167,7 +167,6 @@ export async function writeOutcome(outcome: Outcome): Promise<string> {
         modelCostUsd: outcome.costUsd.toFixed(6),
       });
 
-      await bumpSpend(tx, outcome.costUsd);
       return outcome.targetCasualtyId;
     }
 
@@ -215,7 +214,6 @@ export async function writeOutcome(outcome: Outcome): Promise<string> {
       modelCostUsd: outcome.costUsd.toFixed(6),
     });
 
-    await bumpSpend(tx, outcome.costUsd);
     return casualtyId;
   });
 }

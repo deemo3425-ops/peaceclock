@@ -11,8 +11,8 @@
     "db:seed": "pnpm build && node scripts/seed-prod.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:unit": "vitest run --exclude '**/integration.test.ts'",
-    "test:integration": "vitest run src/__tests__/integration.test.ts",
+    "test:unit": "vitest run src/__tests__/scoring.test.ts src/__tests__/worker-gate.test.ts",
+    "test:integration": "vitest run src/__tests__/integration.test.ts src/__tests__/worker-e2e.test.ts",
     "db:setup:test": "node src/__tests__/fixtures/seed.mjs --schema-only",
     "db:seed:test": "node src/__tests__/fixtures/seed.mjs --seed-only"
   },

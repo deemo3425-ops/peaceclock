@@ -1,0 +1,96 @@
+{
+  "batchId": "msgbatch_fixture_a5_haiku",
+  "model": "claude-haiku-4-5",
+  "results": [
+    {
+      "custom_id": "00000000-0000-4000-8000-000000000001",
+      "result": {
+        "type": "succeeded",
+        "message": {
+          "usage": {
+            "input_tokens": 820,
+            "output_tokens": 310
+          },
+          "content": [
+            {
+              "type": "tool_use",
+              "name": "record_assessment",
+              "input": {
+                "candidates": [
+                  {
+                    "candidateId": "news-junction",
+                    "where": 0.97,
+                    "when": 0.94,
+                    "what": 0.92,
+                    "who": 0.55,
+                    "relation": "corroborates"
+                  },
+                  {
+                    "candidateId": "x-video-2",
+                    "where": 0.96,
+                    "when": 0.93,
+                    "what": 0.9,
+                    "who": 0.5,
+                    "relation": "corroborates"
+                  },
+                  {
+                    "candidateId": "kupiansk",
+                    "where": 0.2,
+                    "when": 0.4,
+                    "what": 0.5,
+                    "who": 0.0,
+                    "relation": "unrelated"
+                  }
+                ],
+                "geo": {
+                  "lat": 49.2,
+                  "lng": 37.3,
+                  "confidence": 0.82
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "parsed": [
+    {
+      "evidenceId": "00000000-0000-4000-8000-000000000001",
+      "assessment": {
+        "candidates": [
+          {
+            "candidateId": "news-junction",
+            "where": 0.97,
+            "when": 0.94,
+            "what": 0.92,
+            "who": 0.55,
+            "relation": "corroborates"
+          },
+          {
+            "candidateId": "x-video-2",
+            "where": 0.96,
+            "when": 0.93,
+            "what": 0.9,
+            "who": 0.5,
+            "relation": "corroborates"
+          },
+          {
+            "candidateId": "kupiansk",
+            "where": 0.2,
+            "when": 0.4,
+            "what": 0.5,
+            "who": 0.0,
+            "relation": "unrelated"
+          }
+        ],
+        "geo": {
+          "lat": 49.2,
+          "lng": 37.3,
+          "confidence": 0.82
+        }
+      },
+      "costUsd": 0.001185
+    }
+  ]
+}
