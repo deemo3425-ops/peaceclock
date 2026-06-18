@@ -1,0 +1,11 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@peaceclock/api-types": ["../../packages/api-types/src"],
+      "@peaceclock/count-engine": ["../../packages/count-engine/src"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}
