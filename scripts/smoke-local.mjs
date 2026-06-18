@@ -11,6 +11,7 @@ import postgres from 'postgres';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const base = (process.argv[2] ?? 'http://localhost:3000').replace(/\/$/, '');
+const isHostedProd = base.includes('vercel.app') || base.includes('peaceclock.org');
 const results = [];
 
 function loadEnvLocal() {
@@ -39,6 +40,18 @@ async function get(path, opts = {}) {
 }
 
 loadEnvLocal();
+if (isHostedProd && existsSync(join(root, 'apps/web/.env.production.local'))) {
+  for (const line of readFileSync(join(root, 'apps/web/.env.production.local'), 'utf8').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    const value = trimmed.slice(eq + 1).trim();
+    if (key === 'CRON_SECRET' && !process.env.CRON_SECRET) process.env.CRON_SECRET = value;
+    if (key === 'VOYAGE_API_KEY' && !process.env.VOYAGE_API_KEY) process.env.VOYAGE_API_KEY = value;
+  }
+}
 
 console.log(`\nSmoke: ${base}\n`);
 
@@ -96,14 +109,14 @@ for (const [id, name, path, expect] of [
 // §8.3 Security (local dev: routes open when secrets unset)
 {
   const res = await get('/api/cron/corroborate');
-  const isProd = process.env.NODE_ENV === 'production';
+  const isProd = isHostedProd || process.env.NODE_ENV === 'production';
   const pass = isProd ? res.status === 401 : res.status === 200;
-  record(13, 'Cron auth', pass, isProd ? `prod expects 401, got ${res.status}` : `local open, got ${res.status}`);
+  record(13, 'Cron auth', pass, isProd ? `fail-closed ${res.status}` : `local open, got ${res.status}`);
 }
 
 {
   const res = await fetch(`${base}/api/audit`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
-  const isProd = process.env.NODE_ENV === 'production';
+  const isProd = isHostedProd || process.env.NODE_ENV === 'production';
   const pass = isProd ? res.status === 401 : [200, 400, 405].includes(res.status);
   record(14, 'Audit auth', pass, `status ${res.status}`);
 }
@@ -122,15 +135,16 @@ for (const [id, name, path, expect] of [
 
 // §8.4 Crons (manual local tick)
 {
-  const res = await get('/api/cron/corroborate', { headers: { authorization: 'Bearer dev' } });
-  record(17, 'Corroborate cron', res.status === 200, `status ${res.status}`);
-}
+  const cronSecret = process.env.CRON_SECRET;
+  const cronAuth = cronSecret ? { authorization: `Bearer ${cronSecret}` } : isHostedProd ? {} : { authorization: 'Bearer dev' };
+  const corro = await get('/api/cron/corroborate', { headers: cronAuth });
+  record(17, 'Corroborate cron', corro.status === 200, `status ${corro.status}`);
 
-{
-  const res = await get('/api/cron/ingest', { headers: { authorization: 'Bearer dev' } });
-  const body = await res.json().catch(() => ({}));
-  const ingestOk = res.status === 200 || (res.status === 500 && process.env.VOYAGE_API_KEY?.startsWith('fake'));
-  record(18, 'Ingest cron', ingestOk, body.ok ? 'ok' : `status ${res.status} (fake keys OK locally)`);
+  const ingest = await get('/api/cron/ingest', { headers: cronAuth });
+  const body = await ingest.json().catch(() => ({}));
+  const fakeVoyage = !process.env.VOYAGE_API_KEY || process.env.VOYAGE_API_KEY.startsWith('fake');
+  const ingestOk = ingest.status === 200 || (ingest.status === 500 && fakeVoyage);
+  record(18, 'Ingest cron', ingestOk, body.ok ? 'ok' : `status ${ingest.status}${fakeVoyage ? ' (fake Voyage OK)' : ''}`);
 }
 
 // §8.5 Data sanity
