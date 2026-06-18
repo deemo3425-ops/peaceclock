@@ -4,10 +4,6 @@
   "buildCommand": "cd ../.. && pnpm --filter @peaceclock/api-types build && pnpm --filter @peaceclock/count-engine build && pnpm --filter @peaceclock/db build && pnpm --filter @peaceclock/web build",
   "crons": [
     {
-      "path": "/api/cron/corroborate",
-      "schedule": "*/5 * * * *"
-    },
-    {
       "path": "/api/cron/ingest",
       "schedule": "0 6 * * *"
     }

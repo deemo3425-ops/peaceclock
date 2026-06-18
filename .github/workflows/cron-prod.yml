@@ -1,0 +1,25 @@
+name: Prod corroborate cron
+
+# Hobby Vercel cannot run */5 crons — external trigger every 5 min (deploy-runbook §7.1).
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: prod-corroborate
+  cancel-in-progress: false
+
+jobs:
+  corroborate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger /api/cron/corroborate
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          PROD_URL: ${{ vars.PROD_URL || 'https://peaceclock.vercel.app' }}
+        run: |
+          test -n "$CRON_SECRET" || { echo "CRON_SECRET not set in repo secrets"; exit 1; }
+          curl -sfS -w "\nHTTP %{http_code}\n" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${PROD_URL}/api/cron/corroborate"
