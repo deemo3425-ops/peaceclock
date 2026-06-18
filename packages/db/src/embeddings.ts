@@ -10,27 +10,46 @@ const VOYAGE_API_BASE = 'https://api.voyageai.com/v1';
 const MODEL = 'voyage-3'; // Anthropic-recommended
 const DIMENSIONS = 1024;
 
+function useStubEmbeddings(): boolean {
+  const key = process.env.VOYAGE_API_KEY;
+  return (
+    process.env.CI_STUB_EMBEDDINGS === '1' ||
+    !key ||
+    key === 'fake' ||
+    key === 'test'
+  );
+}
+
+function getVoyageApiKey(): string {
+  const key = process.env.VOYAGE_API_KEY;
+  if (!key) {
+    throw new Error('VOYAGE_API_KEY environment variable not set');
+  }
+  return key;
+}
+
 export interface EmbeddingResult {
   embedding: number[];
   tokens: number;
 }
 
-/**
- * Embed text using Voyage API.
- * T3.1: batching, retry/backoff handled externally (via adapter).
- */
-/** Deterministic stub embedding when VOYAGE_API_KEY is absent (CI / local). */
+/** Deterministic stub embedding for CI / missing key. */
 function stubEmbedding(text: string): EmbeddingResult {
   const hash = crypto.createHash('sha256').update(text).digest();
   const embedding = Array.from({ length: DIMENSIONS }, (_, i) => (hash[i % hash.length]! / 255) * 2 - 1);
   return { embedding, tokens: Math.ceil(text.length / 4) };
 }
 
+/**
+ * Embed text using Voyage API.
+ * T3.1: batching, retry/backoff handled externally (via adapter).
+ */
 export async function embed(text: string): Promise<EmbeddingResult> {
-  const apiKey = process.env.VOYAGE_API_KEY;
-  if (!apiKey) {
+  if (useStubEmbeddings()) {
     return stubEmbedding(text);
   }
+
+  const apiKey = getVoyageApiKey();
 
   const response = await fetch(`${VOYAGE_API_BASE}/embeddings`, {
     method: 'POST',
@@ -57,7 +76,6 @@ export async function embed(text: string): Promise<EmbeddingResult> {
   const embedding = data.data[0].embedding;
   const tokens = data.usage.total_tokens;
 
-  // Record cost (no model cost for embeddings in pricing, but track usage)
   console.log('[embeddings] embedded text', { model: MODEL, tokens });
 
   return { embedding, tokens };
@@ -65,7 +83,6 @@ export async function embed(text: string): Promise<EmbeddingResult> {
 
 /**
  * Batch embed multiple texts (T3.1 optimization, deferred).
- * For now, embed serially with backoff.
  */
 export async function embedBatch(
   texts: string[],
@@ -75,7 +92,6 @@ export async function embedBatch(
 
   for (const text of texts) {
     results.push(await embed(text));
-    // Backoff between requests
     await new Promise((r) => setTimeout(r, delayMs));
   }
 

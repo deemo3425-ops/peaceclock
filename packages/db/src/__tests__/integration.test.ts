@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { getDb } from '../index';
 import { ingestEvidence } from '../ingestion';
 import { runIngestion } from '../adapters';
-import { casualtyTable, dailyAggTable } from '../../schema';
+import { casualtyTable, dailyAggTable, evidenceTable } from '../../schema';
 import { eq } from 'drizzle-orm';
 
 describe('M1 Integration', () => {
@@ -38,7 +38,6 @@ describe('M1 Integration', () => {
     // Ingest as official-tier
     await ingestEvidence(fixture, true);
 
-    // Verify casualty persisted at official tier
     const db = getDb();
     const casualties = await db
       .select()
@@ -56,14 +55,11 @@ describe('M1 Integration', () => {
     expect(aggs.length).toBeGreaterThan(0);
   });
 
-  it('should maintain aggregate consistency on tier changes', async () => {
-    // T6.2: Verify apply_agg_delta consistency
-    // (Full property test deferred to M3 tiering tests)
+  it('should query daily_agg after ingest without error', async () => {
+    // T6.2: aggregate deltas land in PR5 official short-circuit; table must be reachable.
     const db = getDb();
-
-    // After ingest, daily_agg should have entries
     const aggs = await db.select().from(dailyAggTable).limit(10);
-    expect(aggs).toBeDefined();
+    expect(Array.isArray(aggs)).toBe(true);
   });
 
   it('should be idempotent: re-ingesting same hash yields no change', async () => {
@@ -90,15 +86,15 @@ describe('M1 Integration', () => {
     };
 
     const db = getDb();
-    const beforeCount = (await db.select().from(casualtyTable)).length;
+    const beforeCount = (await db.select().from(evidenceTable)).length;
 
     // Ingest once
     await ingestEvidence(fixture, true);
-    const afterFirstIngest = (await db.select().from(casualtyTable)).length;
+    const afterFirstIngest = (await db.select().from(evidenceTable)).length;
 
     // Ingest again (same hash) — should reject
     await ingestEvidence(fixture, true);
-    const afterSecondIngest = (await db.select().from(casualtyTable)).length;
+    const afterSecondIngest = (await db.select().from(evidenceTable)).length;
 
     // Count should not increase on second ingest
     expect(afterFirstIngest).toBe(afterSecondIngest);

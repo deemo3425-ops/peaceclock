@@ -13,7 +13,11 @@ import {
 import { embed } from './embeddings';
 import { applyAggDelta } from './agg-delta';
 import { getWatermark, setWatermark } from './watermark';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
+
+function toVectorLiteral(embedding: number[]): string {
+  return `[${embedding.join(',')}]`;
+}
 
 /**
  * Raw evidence from a source (normalized).
@@ -257,8 +261,8 @@ export async function ingestEvidence(
       publishedAt: evidence.publishedAt,
       raw: JSON.stringify(evidence.raw),
       contentHash: hash,
-      embedding,
-      geom: 'POINT(0 0)', // placeholder; AI/audit fills in
+      embedding: sql`${toVectorLiteral(embedding)}::vector`,
+      geom: sql`ST_GeogFromText('POINT(0 0)')`, // placeholder; AI/audit fills in
       corroStatus: shortCircuits ? 'done' : 'pending',
     })
     .returning({ id: evidenceTable.id });

@@ -20,5 +20,10 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: {
+      DATABASE_URL: process.env.DATABASE_URL ?? '',
+      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? 'fake',
+      VOYAGE_API_KEY: process.env.VOYAGE_API_KEY ?? 'fake',
+    },
   },
 });

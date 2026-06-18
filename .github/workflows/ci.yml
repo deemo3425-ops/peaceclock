@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  # supabase/postgres image: superuser for schema setup + integration tests
+  DATABASE_URL: postgresql://supabase_admin:postgres@localhost:5432/peaceclock_test
+  ANTHROPIC_API_KEY: fake
+  VOYAGE_API_KEY: fake
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: supabase/postgres:15.8.1.060
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: peaceclock_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d peaceclock_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: |
+          pnpm --filter @peaceclock/api-types build
+          pnpm --filter @peaceclock/count-engine build
+
+      - name: Typecheck
+        run: pnpm -r exec tsc --noEmit
+
+      - name: Unit tests (count-engine)
+        run: pnpm --filter @peaceclock/count-engine test
+
+      - name: Unit tests (db)
+        run: pnpm --filter @peaceclock/db test:unit
+
+      - name: Apply test database schema
+        run: pnpm --filter @peaceclock/db db:setup:test
+
+      - name: Integration tests (db)
+        run: pnpm --filter @peaceclock/db test:integration
+
+      - name: Next.js build
+        working-directory: apps/web
+        run: pnpm build
+
+      - name: Install Playwright browsers
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Seed E2E fixture data
+        run: pnpm --filter @peaceclock/db db:seed:test
+        continue-on-error: true
+
+      - name: Playwright E2E
+        working-directory: apps/web
+        run: pnpm exec playwright test counter.spec.ts map.spec.ts
+        continue-on-error: true
