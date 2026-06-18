@@ -14,9 +14,9 @@ test('counter flow: load, scrub, threshold, category, source', async ({ page }) 
   await expect(page.getByRole('heading', { name: 'PeaceClock' })).toBeVisible();
   await expect(page.locator('.matrix__table').first()).toBeVisible();
 
-  // Scrub date → URL reflects /c/:date.
+  // Scrub date → URL reflects /c/:theater/:date.
   await page.locator('#asOf').fill('2023-06-01');
-  await expect(page).toHaveURL(/\/c\/2023-06-01/);
+  await expect(page).toHaveURL(/\/c\/ukraine\/2023-06-01/);
 
   // Move threshold slider → output label updates, no navigation/reload.
   const slider = page.locator('#threshold');
@@ -36,8 +36,13 @@ test('counter flow: load, scrub, threshold, category, source', async ({ page }) 
   }
 });
 
-test('deep link restores state on refresh', async ({ page }) => {
+test('legacy deep link redirects to theater-prefixed URL', async ({ page }) => {
   await page.goto('/c/2023-06-01?threshold=osint&category=wounded');
+  await expect(page).toHaveURL(/\/c\/ukraine\/2023-06-01\?threshold=osint&category=wounded/);
+});
+
+test('deep link restores state on refresh', async ({ page }) => {
+  await page.goto('/c/ukraine/2023-06-01?threshold=osint&category=wounded');
   await expect(page.locator('#asOf')).toHaveValue('2023-06-01');
   await expect(page.locator('.control__value')).toContainText('OSINT');
   await expect(page.getByRole('radio', { name: 'Wounded' })).toHaveAttribute('aria-checked', 'true');

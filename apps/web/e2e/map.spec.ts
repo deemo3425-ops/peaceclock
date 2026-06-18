@@ -14,7 +14,7 @@ test('map loads, controls drive state, deep-link restores', async ({ page }) => 
 
   // Shared controls present and wired to URL.
   await page.locator('#asOf').fill('2023-06-01');
-  await expect(page).toHaveURL(/\/m\/2023-06-01/);
+  await expect(page).toHaveURL(/\/m\/ukraine\/2023-06-01/);
 
   const slider = page.locator('#threshold');
   await slider.focus();
@@ -23,11 +23,11 @@ test('map loads, controls drive state, deep-link restores', async ({ page }) => 
 
   // Counter ↔ map navigation preserves date.
   await page.getByRole('link', { name: '← Counter' }).click();
-  await expect(page).toHaveURL(/\/c\/2023-06-01/);
+  await expect(page).toHaveURL(/\/c\/ukraine\/2023-06-01/);
 });
 
 test('deep link restores map state', async ({ page }) => {
-  await page.goto('/m/2023-06-01?threshold=osint&category=wounded');
+  await page.goto('/m/ukraine/2023-06-01?threshold=osint&category=wounded');
   await expect(page.locator('#asOf')).toHaveValue('2023-06-01');
   await expect(page.locator('.control__value')).toContainText('OSINT');
 });

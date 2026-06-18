@@ -5,6 +5,7 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { getCountsData } from '@/lib/counts';
 import { getMapPins } from '@/lib/map';
 import { todayUtc } from '@/lib/dates';
+import { DEFAULT_THEATER } from '@peaceclock/db';
 import { SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
@@ -56,13 +57,13 @@ export default async function Home() {
           Every figure is a lower bound and links to its source — never a claim of the full toll.
         </p>
         <p className="hero__cta">
-          <a href={`/c/${asOf}`}>Open the counter →</a> <a href="/map">Explore the map →</a>{' '}
+          <a href={`/c/${DEFAULT_THEATER}/${asOf}`}>Open the counter →</a> <a href="/map">Explore the map →</a>{' '}
           <a href="/methodology">How we count →</a>
         </p>
       </section>
 
       <MapBackdrop pins={pins} />
-      <Counter data={data} initialAsOf={asOf} />
+      <Counter data={data} theater={DEFAULT_THEATER} initialAsOf={asOf} />
       <SiteFooter />
     </>
   );

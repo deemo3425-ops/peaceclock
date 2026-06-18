@@ -7,9 +7,11 @@ import { MapView } from './MapView';
 import { ThresholdSlider } from './ThresholdSlider';
 import { DateController } from './DateController';
 import { CategoryToggle } from './CategoryToggle';
+import type { TheaterSlug } from '@peaceclock/db';
 import { DEFAULT_THRESHOLD, SIDE_LABEL, TIER_LABEL } from '@/lib/labels';
 
 interface Props {
+  theater: TheaterSlug;
   initialAsOf: string;
   initialThreshold?: Tier;
   initialCategory?: Category;
@@ -17,10 +19,10 @@ interface Props {
 
 /**
  * View 2 root (M4·WS1/WS2). Shares the View 1 controls + URL-state contract
- * (history.replaceState, deep-linkable /m/:date). Pin click opens evidence
+ * (history.replaceState, deep-linkable /m/:theater/:date). Pin click opens evidence
  * detail (links only, never embedded media — PRD §9).
  */
-export function MapApp({ initialAsOf, initialThreshold, initialCategory }: Props) {
+export function MapApp({ theater, initialAsOf, initialThreshold, initialCategory }: Props) {
   const [asOf, setAsOf] = useState(initialAsOf);
   const [threshold, setThreshold] = useState<Tier>(initialThreshold ?? DEFAULT_THRESHOLD);
   const [category, setCategory] = useState<Category>(initialCategory ?? Category.KILLED);
@@ -32,8 +34,8 @@ export function MapApp({ initialAsOf, initialThreshold, initialCategory }: Props
     const qs = new URLSearchParams();
     if (t !== DEFAULT_THRESHOLD) qs.set('threshold', t);
     if (c !== Category.KILLED) qs.set('category', c);
-    window.history.replaceState(null, '', `/m/${d}${qs.toString() ? `?${qs}` : ''}`);
-  }, []);
+    window.history.replaceState(null, '', `/m/${theater}/${d}${qs.toString() ? `?${qs}` : ''}`);
+  }, [theater]);
 
   const onPinClick = useCallback(async (f: MapFeature) => {
     const id = f.properties.repEvidenceId;
@@ -51,7 +53,7 @@ export function MapApp({ initialAsOf, initialThreshold, initialCategory }: Props
   return (
     <div className="maproot">
       <div className="maproot__controls">
-        <a className="maproot__nav" href={`/c/${asOf}`}>← Counter</a>
+        <a className="maproot__nav" href={`/c/${theater}/${asOf}`}>← Counter</a>
         <DateController asOf={asOf} onChange={(d) => { setAsOf(d); syncUrl(d, threshold, category); }} />
         <CategoryToggle category={category} onChange={(c) => { setCategory(c); syncUrl(asOf, threshold, c); }} />
         <ThresholdSlider threshold={threshold} onChange={(t) => { setThreshold(t); syncUrl(asOf, t, category); }} />

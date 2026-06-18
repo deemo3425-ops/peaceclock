@@ -4,6 +4,7 @@ import { useMemo, useState, useCallback } from 'react';
 import type { CountSeries, CountsResponse } from '@peaceclock/api-types';
 import { Category, Tier } from '@peaceclock/api-types';
 import { computeMatrix } from '@peaceclock/count-engine';
+import type { TheaterSlug } from '@peaceclock/db';
 import { DEFAULT_THRESHOLD, CATEGORY_LABEL, TIER_LABEL } from '@/lib/labels';
 import { track } from '@/lib/analytics';
 import { CountMatrix } from './CountMatrix';
@@ -14,6 +15,7 @@ import { Freshness } from './Freshness';
 
 interface CounterProps {
   data: CountsResponse;
+  theater: TheaterSlug;
   initialAsOf: string;
   initialThreshold?: Tier;
   initialCategory?: Category;
@@ -25,7 +27,7 @@ interface CounterProps {
  * scrub or slider (T3.2/T3.3). URL is kept in sync via history.replaceState so
  * the view is deep-linkable and refresh-restorable (server reads the same date).
  */
-export function Counter({ data, initialAsOf, initialThreshold, initialCategory }: CounterProps) {
+export function Counter({ data, theater, initialAsOf, initialThreshold, initialCategory }: CounterProps) {
   const series: CountSeries[] = data.series;
   const [asOf, setAsOf] = useState(initialAsOf);
   const [threshold, setThreshold] = useState<Tier>(initialThreshold ?? DEFAULT_THRESHOLD);
@@ -37,8 +39,8 @@ export function Counter({ data, initialAsOf, initialThreshold, initialCategory }
     if (t !== DEFAULT_THRESHOLD) qs.set('threshold', t);
     if (c !== Category.KILLED) qs.set('category', c);
     const suffix = qs.toString() ? `?${qs}` : '';
-    window.history.replaceState(null, '', `/c/${d}${suffix}`);
-  }, []);
+    window.history.replaceState(null, '', `/c/${theater}/${d}${suffix}`);
+  }, [theater]);
 
   const onDate = useCallback((d: string) => { setAsOf(d); syncUrl(d, threshold, category); track('scrub_date'); }, [threshold, category, syncUrl]);
   const onThreshold = useCallback((t: Tier) => { setThreshold(t); syncUrl(asOf, t, category); track('change_threshold', { threshold: t }); }, [asOf, category, syncUrl]);
@@ -67,7 +69,7 @@ export function Counter({ data, initialAsOf, initialThreshold, initialCategory }
         <p className="counter__sub">
           Confirmed casualties of the war in Ukraine — a lower bound, counted only when evidence meets the bar.
         </p>
-        <a className="maproot__nav" href={`/m/${asOf}`}>View map →</a>
+        <a className="maproot__nav" href={`/m/${theater}/${asOf}`}>View map →</a>
       </header>
 
       <div className="counter__controls">
