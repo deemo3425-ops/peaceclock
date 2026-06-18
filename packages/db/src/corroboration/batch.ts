@@ -102,7 +102,7 @@ export async function fetchResults(batchId: string, model: Model = HAIKU): Promi
     }
     const message = entry.result.message;
     const cost = costOf(model, message.usage as any);
-    recordModelCost({
+    await recordModelCost({
       itemId: evidenceId,
       model: model === HAIKU ? 'haiku' : 'opus',
       inputTokens: (message.usage as any).input_tokens ?? 0,

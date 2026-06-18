@@ -204,6 +204,7 @@ describe('tickProcess dedup embedding', () => {
           stage: 'haiku',
           status: 'submitted',
         }] },
+        { rows: [{ corroStatus: 'scoring' }], withLimit: true },
         { rows: [{
           raw: '{"text":"dedup me"}',
           publishedAt: '2024-01-01',

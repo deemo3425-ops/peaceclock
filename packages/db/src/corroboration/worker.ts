@@ -149,6 +149,8 @@ export async function tickProcess(): Promise<{ processed: number; escalated: num
 
     const results = await fetchResults(batch.providerId, 'claude-haiku-4-5' as any);
     for (const res of results) {
+      if (await isTerminalEvidence(res.evidenceId)) continue;
+
       const facets = await loadFacets(res.evidenceId);
       if (!res.assessment) {
         await db.update(evidenceTable).set({ corroStatus: 'unverified' }).where(eq(evidenceTable.id, res.evidenceId));
@@ -239,6 +241,8 @@ export async function tickOpusProcess(): Promise<{ finalized: number }> {
     if ((await pollBatch(batch.providerId)) !== 'ended') continue;
     const results = await fetchResults(batch.providerId, 'claude-opus-4-8' as any);
     for (const res of results) {
+      if (await isTerminalEvidence(res.evidenceId)) continue;
+
       const facets = await loadFacets(res.evidenceId);
       if (!res.assessment) {
         await db.update(evidenceTable).set({ corroStatus: 'unverified' }).where(eq(evidenceTable.id, res.evidenceId));
@@ -255,6 +259,17 @@ export async function tickOpusProcess(): Promise<{ finalized: number }> {
 }
 
 // ── shared finalize ──────────────────────────────────────────────────────────
+
+/** Re-delivered batch results for `done` evidence are no-ops (T3.3). */
+async function isTerminalEvidence(evidenceId: string): Promise<boolean> {
+  const db = getDb();
+  const [e] = await db
+    .select({ corroStatus: evidenceTable.corroStatus })
+    .from(evidenceTable)
+    .where(eq(evidenceTable.id, evidenceId))
+    .limit(1);
+  return e?.corroStatus === 'done';
+}
 
 async function loadFacets(evidenceId: string): Promise<EvidenceFacets> {
   const db = getDb();
