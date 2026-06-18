@@ -18,22 +18,7 @@ import {
   CLUSTER_RADIUS,
   CLUSTER_COUNT,
 } from '@/lib/mapSprites';
-
-// Configurable tile/base style (EDD §14 open question). Falls back to a keyless
-// raster OSM style so the map renders without a provider key in dev.
-const STYLE_URL = process.env.NEXT_PUBLIC_MAP_STYLE_URL;
-const RASTER_FALLBACK = {
-  version: 8 as const,
-  sources: {
-    osm: {
-      type: 'raster' as const,
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      attribution: '© OpenStreetMap contributors',
-    },
-  },
-  layers: [{ id: 'osm', type: 'raster' as const, source: 'osm' }],
-};
+import { resolveMapStyle } from '@/lib/map';
 
 interface Props {
   asOf: string;
@@ -92,7 +77,7 @@ export function MapView({ asOf, threshold, side, category, onPinClick }: Props) 
 
       const map = new maplibregl.Map({
         container: containerRef.current,
-        style: (STYLE_URL as any) ?? RASTER_FALLBACK,
+        style: resolveMapStyle() as any,
         center: [31.2, 48.4], // Ukraine
         zoom: 4,
       });

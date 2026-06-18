@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { MapResponse } from '@peaceclock/api-types';
 import { Side, Category, Audience, Tier } from '@peaceclock/api-types';
 import { tiersAtOrAbove } from '@peaceclock/count-engine';
-import { queryMap, DEFAULT_THEATER, isTheaterSlug, type TheaterSlug } from '@peaceclock/db';
+import {
+  queryMap,
+  mapCacheKey,
+  DEFAULT_THEATER,
+  isTheaterSlug,
+  type TheaterSlug,
+  type MapQueryParams,
+} from '@peaceclock/db';
 import { todayUtc } from '@/lib/dates';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -34,16 +41,19 @@ export async function GET(request: NextRequest): Promise<NextResponse<MapRespons
   }
 
   try {
-    const features = await queryMap({
+    const tiers = [...tiersAtOrAbove(threshold)];
+    const queryParams: MapQueryParams = {
       asOf,
-      tiers: [...tiersAtOrAbove(threshold)],
+      tiers,
       bbox: bboxRaw as [number, number, number, number],
       zoom,
-      theater: theater === 'all' ? 'all' : theater,
+      theater,
       side: enumOrUndef(Object.values(Side), searchParams.get('side')),
       category: enumOrUndef(Object.values(Category), searchParams.get('category')),
       audience: enumOrUndef(Object.values(Audience), searchParams.get('audience')),
-    });
+    };
+    const { snappedBbox } = mapCacheKey(queryParams);
+    const features = await queryMap({ ...queryParams, bbox: snappedBbox });
     return NextResponse.json(
       { type: 'FeatureCollection', features, theater: theater as MapResponse['theater'], asOf, zoom },
       { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' } },

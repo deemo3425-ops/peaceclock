@@ -36,6 +36,8 @@ export {
   eps,
   zoomBand,
   gridCell,
+  tileSizeMeters,
+  snapBboxToTileGrid,
   EARTH_CIRCUMFERENCE_M,
   TILE_PX,
   DEFAULT_PIXEL_RADIUS,

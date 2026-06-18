@@ -1,39 +1,39 @@
 /**
- * Server-only map-pins fetch (M2·WS4). Converts EPSG:3857 → lon/lat via the
- * shared engine and drops unparseable points. Resilient: empty on error.
+ * Map tile provider configuration (M4·WS3, PR8, EDD §14).
+ *
+ * **Production:** Set `NEXT_PUBLIC_MAP_STYLE_URL` to a MapTiler vector style JSON
+ * URL (see `.env.example`). MapLibre GL JS loads the style directly; vector tiles
+ * scale cleanly at all zoom levels and carry provider attribution in the style spec.
+ *
+ * **Development:** When `NEXT_PUBLIC_MAP_STYLE_URL` is unset, `resolveMapStyle()`
+ * returns a keyless OpenStreetMap **raster** fallback so the map renders without a
+ * provider API key. Suitable for local dev and CI smoke tests only — not for
+ * production traffic (rate limits, no offline cache policy).
+ *
+ * @see apps/web/components/MapView.tsx — consumer
  */
 
-import 'server-only';
-import type { MapPin } from '@peaceclock/api-types';
-import { DEFAULT_THEATER } from '@peaceclock/db';
-import { parsePoint3857 } from '@peaceclock/count-engine';
-import { queryMapPins } from '@peaceclock/db';
+import type { StyleSpecification } from 'maplibre-gl';
 
-export async function getMapPins(
-  asOf: string,
-  limit = 150,
-  theater = DEFAULT_THEATER,
-): Promise<MapPin[]> {
-  try {
-    const rows = await queryMapPins(asOf, limit, theater);
-    const pins: MapPin[] = [];
-    for (const r of rows) {
-      const ll = parsePoint3857(r.geom3857);
-      if (!ll) continue;
-      pins.push({
-        id: r.evidenceId,
-        theater: r.theater,
-        lon: ll.lon,
-        lat: ll.lat,
-        side: r.side,
-        tier: r.tier,
-        category: r.category,
-        date: r.eventDate,
-      });
-    }
-    return pins;
-  } catch (error) {
-    console.error('[getMapPins] falling back to no pins:', error);
-    return [];
-  }
+/** Keyless OSM raster tiles for local dev when NEXT_PUBLIC_MAP_STYLE_URL is unset. */
+export const OSM_RASTER_FALLBACK: StyleSpecification = {
+  version: 8,
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      attribution: '© OpenStreetMap contributors',
+    },
+  },
+  layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
+};
+
+/**
+ * MapTiler (prod) style URL from env, or the OSM raster fallback when unset.
+ * `NEXT_PUBLIC_*` is inlined at build time — restart `next dev` after changing it.
+ */
+export function resolveMapStyle(): string | StyleSpecification {
+  const url = process.env.NEXT_PUBLIC_MAP_STYLE_URL?.trim();
+  return url ? url : OSM_RASTER_FALLBACK;
 }

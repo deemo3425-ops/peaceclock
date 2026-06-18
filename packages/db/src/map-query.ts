@@ -4,11 +4,22 @@
  *   z<8 grid aggregate · 8–14 ST_ClusterDBSCAN · z>14 raw points.
  * The bbox `&&` prefilter (GiST) bounds the candidate set — mandatory before the
  * in-memory DBSCAN window. Returns platform-neutral GeoJSON MapFeatures.
+ *
+ * **Spatial index (PR1).** `filtered` uses `mp.geom_3857 && p.bbox`, backed by the
+ * `map_point_gix` GiST index on `map_point.geom_3857` (`0000_baseline.sql`).
+ *
+ * **CDN cache keys (M4·T0.5, EDD §9.3).** Edge responses are keyed by
+ * `(tile-snapped bbox, z, sorted tiers, side, category, audience, asOf-day)`.
+ * Callers must snap the viewport bbox to the Web Mercator tile grid at the request
+ * zoom via `snapBboxToTileGrid` (from `@peaceclock/count-engine`) before calling
+ * `queryMap` so neighboring pans hit the same cache entries. Past `asOf` days are
+ * immutable and cache indefinitely; only the trailing day revalidates on ingest.
+ * Use `mapCacheKey` below to build the canonical key string.
  */
 
 import { getDb } from './index';
 import { sql } from 'drizzle-orm';
-import { eps, gridCell, zoomBand } from '@peaceclock/count-engine';
+import { eps, gridCell, zoomBand, snapBboxToTileGrid } from '@peaceclock/count-engine';
 import { Theater, Side, Tier, Category, Audience } from '@peaceclock/api-types';
 import type { TheaterSlug } from './theater.config';
 import type { MapFeature, MapFeatureProperties } from '@peaceclock/api-types';
@@ -16,7 +27,8 @@ import type { MapFeature, MapFeatureProperties } from '@peaceclock/api-types';
 export interface MapQueryParams {
   asOf: string;
   tiers: Tier[]; // tier set at/above the slider threshold
-  bbox: [number, number, number, number]; // [minX,minY,maxX,maxY] in 3857
+  /** Tile-snapped [minX,minY,maxX,maxY] in EPSG:3857 — see snapBboxToTileGrid. */
+  bbox: [number, number, number, number];
   zoom: number;
   /** Single theater, or omit/`all` for world/regional multi-theater view (M8). */
   theater?: TheaterSlug | 'all';
@@ -78,6 +90,30 @@ function rowToFeature(r: ClusterRow): MapFeature | null {
       bounds: toBounds(r.bounds),
     },
   };
+}
+
+/**
+ * Canonical `/api/map` CDN cache key (EDD §9.3). Expects `bbox` already snapped
+ * to the tile grid; returns the snapped envelope for query use when needed.
+ */
+export function mapCacheKey(p: MapQueryParams): {
+  snappedBbox: [number, number, number, number];
+  key: string;
+} {
+  const z = Math.round(p.zoom);
+  const snappedBbox = snapBboxToTileGrid(p.bbox, z);
+  const tiers = [...p.tiers].sort().join(',');
+  const key = [
+    snappedBbox.map((n) => n.toFixed(2)).join(','),
+    z,
+    tiers,
+    p.side ?? '',
+    p.category ?? '',
+    p.audience ?? '',
+    p.asOf,
+    p.theater ?? '',
+  ].join('|');
+  return { snappedBbox, key };
 }
 
 /** Build the bbox + facet filter CTE shared by every band. */

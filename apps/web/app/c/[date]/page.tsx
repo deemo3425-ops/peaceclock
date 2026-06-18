@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { Counter } from '@/components/Counter';
 import { MapBackdrop } from '@/components/MapBackdrop';
 import { getCountsData } from '@/lib/counts';
-import { getMapPins } from '@/lib/map';
+import { getMapPins } from '@/lib/map-pins';
 import { isValidDate, todayUtc } from '@/lib/dates';
 import { Category, Tier } from '@peaceclock/api-types';
 
