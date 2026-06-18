@@ -51,26 +51,25 @@ export async function GET() {
           fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ fontSize: 22, color: '#9aa7b4', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+          <div style={{ display: 'flex', fontSize: 22, color: '#9aa7b4', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
             New Florence Interactive
           </div>
-          <div style={{ fontSize: 72, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1 }}>
+          <div style={{ display: 'flex', fontSize: 72, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 8 }}>
             PeaceClock
           </div>
-          <div style={{ fontSize: 26, color: '#9aa7b4', maxWidth: 900, lineHeight: 1.35 }}>
+          <div style={{ display: 'flex', fontSize: 26, color: '#9aa7b4', maxWidth: 900, lineHeight: 1.35 }}>
             Confirmed casualties of the war in Ukraine — a lower bound, not a claim of the full toll.
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 40, marginTop: 32 }}>
+        <div style={{ display: 'flex', flexDirection: 'row', gap: 40, marginTop: 32, width: '100%' }}>
           {civilian.map((row) => (
             <div
               key={row.side}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 8,
                 flex: 1,
                 padding: '28px 32px',
                 borderRadius: 16,
@@ -78,19 +77,29 @@ export async function GET() {
                 background: 'rgba(20, 24, 29, 0.85)',
               }}
             >
-              <div style={{ fontSize: 20, color: '#9aa7b4' }}>{SIDE_LABEL[row.side]} · civilians killed</div>
-              <div style={{ fontSize: 64, fontWeight: 700, color: '#ffd27d', fontVariantNumeric: 'tabular-nums' }}>
+              <div style={{ display: 'flex', fontSize: 20, color: '#9aa7b4', marginBottom: 8 }}>
+                {SIDE_LABEL[row.side]} · civilians killed
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  fontSize: 64,
+                  fontWeight: 700,
+                  color: '#ffd27d',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
                 {fmt(row.counts.total)}
               </div>
             </div>
           ))}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 32 }}>
-          <div style={{ fontSize: 22, color: '#9aa7b4' }}>
+        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 32, width: '100%' }}>
+          <div style={{ display: 'flex', fontSize: 22, color: '#9aa7b4' }}>
             As of {asOf} · Official + Confirmed threshold
           </div>
-          <div style={{ fontSize: 22, color: '#6db1ff' }}>peaceclock.org</div>
+          <div style={{ display: 'flex', fontSize: 22, color: '#6db1ff' }}>peaceclock.org</div>
         </div>
       </div>
     ),

@@ -14,6 +14,7 @@
     "db:setup:local": "pnpm --filter @peaceclock/db db:setup:test",
     "db:seed:local": "pnpm --filter @peaceclock/db db:seed:test",
     "dev:bootstrap": "node scripts/dev-bootstrap.mjs",
+    "smoke:local": "node scripts/smoke-local.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "devDependencies": {
