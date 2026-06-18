@@ -1,10 +1,6 @@
-import { MapApp } from '@/components/MapApp';
-import { todayUtc } from '@/lib/dates';
-import { DEFAULT_THEATER } from '@peaceclock/db';
+import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-
-/** View 2 for today (M4). */
+/** Legacy /map path — home is the map view. */
 export default function MapPage() {
-  return <MapApp theater={DEFAULT_THEATER} initialAsOf={todayUtc()} />;
+  redirect('/');
 }

@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test('counter flow: load, scrub, threshold, category, source', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/c/ukraine/2023-06-01');
 
   // Loads with the headline present (SSR).
   await expect(page.getByRole('heading', { name: 'PeaceClock' })).toBeVisible();

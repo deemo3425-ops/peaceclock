@@ -97,3 +97,13 @@ M1–M4 core built (~63%); M5–M7 not started. Full DAG in `docs/EXECUTE-PLAN.m
 - **Level-0 parallel:** PR1 migrations, PR2 security/env, PR7 pin sprites.
 - **P0 before ingest:** worker fixes (PR3), fail-closed cron/audit (PR2).
 - **Run:** `/execute-plan docs/EXECUTE-PLAN.md --resume 41662179 --concurrency 4`.
+
+### Deployment · LOCKED ✓
+- **Testing (pre-launch):** **$0/mo** — local `pnpm dev` + GitHub Actions CI only; no hosted `test.peaceclock.org`, no `staging` branch, no Vercel Pro, no cloud crons, no `pnpm db:seed` on cloud DBs (use `db:setup:test` / `db:seed:test` SQL fixtures); optional Neon Free `dev` branch for local `.env.local`.
+- **Production (go-live):** **≤$50/mo** — Vercel Pro ($20, required for `*/5` corroborate cron) + Neon Free `main` + domain; MapTiler Free/OSM until traffic warrants Flex; AI remainder **≤$29/mo** — set `BUDGET_CAP_USD=30`, `OPUS_DAILY_CAP_USD=10` at first prod deploy; monitor `spend_meter`.
+- **Launch gate:** defer Vercel link/Pro until [LAUNCH-CHECKLIST.md](./docs/LAUNCH-CHECKLIST.md) go/no-go; then migrate + `db:seed` on Neon `main`, deploy `main`, smoke [deploy-runbook.md](./docs/deploy-runbook.md) §8.
+- **Default view:** `/` = full-screen map (View 2); `/map` → `/`; counter at `/c/:theater/:date`.
+- **Phases:** 0 ✓ local env · 1 `gh repo create` + `origin` push · 2 local smoke · 3 prod bootstrap (human-gated).
+- **Neon:** project `peaceclock` (`sweet-surf-34533741`), branches `dev` (local) + `main` (prod at launch); `apps/web/.env.local` wired to `dev`.
+- **Local bootstrap:** `pnpm dev:bootstrap` → `pnpm --filter @peaceclock/web dev` (migrate + SQL seed, $0).
+- **Remote:** `gh repo create` on `deemo3425-ops` (no manual URL paste).

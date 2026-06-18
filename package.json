@@ -11,6 +11,9 @@
     "lint": "pnpm -r lint",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "pnpm --filter @peaceclock/db db:seed",
+    "db:setup:local": "pnpm --filter @peaceclock/db db:setup:test",
+    "db:seed:local": "pnpm --filter @peaceclock/db db:seed:test",
+    "dev:bootstrap": "node scripts/dev-bootstrap.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "devDependencies": {

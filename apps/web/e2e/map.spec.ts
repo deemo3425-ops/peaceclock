@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test('map loads, controls drive state, deep-link restores', async ({ page }) => {
-  await page.goto('/map');
+  await page.goto('/');
 
   // Map container present (canvas mounts client-side).
   await expect(page.locator('.mapview')).toBeVisible();
@@ -33,7 +33,7 @@ test('deep link restores map state', async ({ page }) => {
 });
 
 test('keyboard list fallback toggles and is navigable', async ({ page }) => {
-  await page.goto('/map');
+  await page.goto('/');
 
   const toggle = page.getByRole('button', { name: 'Show evidence list' });
   await expect(toggle).toBeVisible();

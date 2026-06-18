@@ -6,7 +6,7 @@ export function SiteFooter() {
     <footer className="sitefooter">
       <nav className="sitefooter__nav" aria-label="Site">
         <a href="/">Home</a>
-        <a href="/map">Map</a>
+        <a href="/">Map</a>
         <a href="/methodology">Methodology</a>
         <a href="/about">About &amp; funding</a>
         <a href="/privacy">Privacy</a>
