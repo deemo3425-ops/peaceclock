@@ -27,7 +27,7 @@ import {
   type ScoringItem,
 } from './batch';
 import { TIER_THRESHOLDS } from '../tiering.config';
-import { DEFAULT_THEATER, type TheaterSlug } from '../theater.config';
+import { DEFAULT_THEATER, isTheaterSlug, type TheaterSlug } from '../theater.config';
 import { Side, Category, Audience, Tier } from '@peaceclock/api-types';
 
 const CLAIM_LIMIT = 50;
@@ -52,11 +52,19 @@ interface EvidenceFacets {
   eventDate: string;
   text: string;
 }
-function facetsFromRaw(raw: string, publishedAt: string | null): EvidenceFacets {
+export function facetsFromRaw(
+  raw: string,
+  publishedAt: string | null,
+  theater?: string | null,
+): EvidenceFacets {
   let p: Record<string, unknown> = {};
   try { p = JSON.parse(raw); } catch { /* raw is plain text */ }
+  const resolvedTheater =
+    (theater && isTheaterSlug(theater) ? theater : null)
+    ?? (typeof p.theater === 'string' && isTheaterSlug(p.theater) ? p.theater : null)
+    ?? DEFAULT_THEATER;
   return {
-    theater: DEFAULT_THEATER,
+    theater: resolvedTheater,
     side: (p.side as Side) ?? Side.RUSSIA,
     category: (p.category as Category) ?? Category.KILLED,
     audience: (p.audience as Audience) ?? Audience.MILITARY,
@@ -93,18 +101,25 @@ export async function tickSubmit(): Promise<{ submitted: number; batchId?: strin
     return { submitted: 0, degraded: ids.length };
   }
 
-  // Prefilter candidates per item.
+  // Prefilter candidates per item; evidence without embedding cannot be scored.
   const items: ScoringItem[] = [];
+  const noEmbeddingIds: string[] = [];
   for (const r of rows) {
     const id = String(r.id);
     const embedding = (r.embedding as number[] | null) ?? null;
-    if (!embedding) continue;
-    const facets = facetsFromRaw(String(r.raw ?? ''), (r.published_at as string) ?? null);
+    if (!embedding) {
+      noEmbeddingIds.push(id);
+      continue;
+    }
     const th = (r.theater as TheaterSlug) ?? DEFAULT_THEATER;
+    const facets = facetsFromRaw(String(r.raw ?? ''), (r.published_at as string) ?? null, th);
     const candidates = await retrieveCandidates(id, embedding, undefined, undefined, th);
     items.push({ evidenceId: id, newPost: facets.text, candidates });
   }
-  if (items.length === 0) return { submitted: 0, degraded: 0 };
+  if (noEmbeddingIds.length > 0) {
+    await db.update(evidenceTable).set({ corroStatus: 'unverified' }).where(inArray(evidenceTable.id, noEmbeddingIds));
+  }
+  if (items.length === 0) return { submitted: 0, degraded: noEmbeddingIds.length };
 
   const batchId = await submitHaikuBatch(items);
   await db.insert(carroBatchTable).values({
@@ -141,8 +156,15 @@ export async function tickProcess(): Promise<{ processed: number; escalated: num
       }
 
       const tally = computeTally(res.assessment.candidates);
+      const [evidence] = await db
+        .select({ embedding: evidenceTable.embedding, theater: evidenceTable.theater })
+        .from(evidenceTable)
+        .where(eq(evidenceTable.id, res.evidenceId))
+        .limit(1);
+      const embedding = (evidence?.embedding as number[] | null) ?? [];
+      const theater = (evidence?.theater as TheaterSlug) ?? facets.theater;
       const candidates = await retrieveCandidates(
-        res.evidenceId, [], undefined, undefined, facets.theater,
+        res.evidenceId, embedding, undefined, undefined, theater,
       );
       const dedup = findDedupTarget(candidates);
       const decision = applyThresholds({
@@ -173,16 +195,28 @@ export async function tickOpus(): Promise<{ adjudicated: number; capped: boolean
   const db = getDb();
   if (await opusCapReached()) return { adjudicated: 0, capped: true };
 
+  const activeOpusBatches = await db.select().from(carroBatchTable).where(
+    sql`${carroBatchTable.stage} = 'opus' AND ${carroBatchTable.status} = 'submitted'`,
+  );
+  const inFlightIds = new Set<string>();
+  for (const batch of activeOpusBatches) {
+    try {
+      const ids = JSON.parse(batch.evidenceIds) as string[];
+      for (const id of ids) inFlightIds.add(id);
+    } catch { /* malformed batch row — skip */ }
+  }
+
   const escalating = await db.select().from(evidenceTable).where(eq(evidenceTable.corroStatus, 'escalating')).limit(CLAIM_LIMIT);
-  if (escalating.length === 0) return { adjudicated: 0, capped: false };
+  const toSubmit = escalating.filter((e) => !inFlightIds.has(e.id));
+  if (toSubmit.length === 0) return { adjudicated: 0, capped: false };
 
   const items: ScoringItem[] = [];
-  for (const e of escalating) {
+  for (const e of toSubmit) {
     const th = (e.theater as TheaterSlug) ?? DEFAULT_THEATER;
     const candidates = await retrieveCandidates(
       e.id, (e.embedding as number[] | null) ?? [], undefined, undefined, th,
     );
-    const facets = facetsFromRaw(e.raw ?? '', e.publishedAt ?? null);
+    const facets = facetsFromRaw(e.raw ?? '', e.publishedAt ?? null, th);
     items.push({ evidenceId: e.id, newPost: facets.text, candidates });
   }
 
@@ -225,8 +259,7 @@ export async function tickOpusProcess(): Promise<{ finalized: number }> {
 async function loadFacets(evidenceId: string): Promise<EvidenceFacets> {
   const db = getDb();
   const [e] = await db.select().from(evidenceTable).where(eq(evidenceTable.id, evidenceId)).limit(1);
-  const base = facetsFromRaw(e?.raw ?? '', e?.publishedAt ?? null);
-  return { ...base, theater: (e?.theater as TheaterSlug) ?? DEFAULT_THEATER };
+  return facetsFromRaw(e?.raw ?? '', e?.publishedAt ?? null, e?.theater ?? null);
 }
 
 async function finalize(
