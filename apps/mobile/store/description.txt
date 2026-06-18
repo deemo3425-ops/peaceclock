@@ -1,0 +1,30 @@
+PeaceClock — confirmed casualty counts for active war theaters
+
+PeaceClock presents side-by-side casualty figures with clear provenance. Every number is tied to evidence you can inspect: official reports, corroborated OSINT, and AI-assisted review — never anonymous totals.
+
+WHAT YOU GET
+• Counter view — date scrubber, authentication-threshold slider, and a side × time-window matrix (civilian figures primary, military secondary)
+• Map view — clustered pins from the same backend GeoJSON as the web app, with tier and side encoding
+• Source attribution — tap any figure to see linked evidence; graphic media is never embedded, only opened at the source
+• Offline last-known-good — cached counts and map state with a clear "as of" timestamp when the network is unavailable
+
+METHODOLOGY
+Counts are derived from an append-only evidence store. Belligerent self-claims are excluded from confirmation. Thresholds let you see only official, confirmed, OSINT, or AI-corroborated tiers.
+
+PeaceClock is informational, neutral, and non-partisan. No accounts, no ads, no purchases.
+
+Learn more: https://peaceclock.org/methodology
+Privacy: https://peaceclock.org/privacy
+Support: https://peaceclock.org/about
+
+KEYWORDS (App Store — 100 chars max, comma-separated)
+casualties,ukraine,conflict,map,osint,verification,news,statistics,evidence,war
+
+SHORT DESCRIPTION (Google Play — 80 chars max)
+Confirmed casualty counts with linked evidence. Counter + map. No accounts.
+
+PROMOTIONAL TEXT (App Store — 170 chars max, optional)
+See what is confirmed — not projected. PeaceClock links every figure to its sources across counter and map views.
+
+WHAT'S NEW (v1.0.0)
+Initial release: native counter and map views with deep links, offline cache, and store-ready privacy posture.

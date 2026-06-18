@@ -9,7 +9,11 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "eas:build:dev": "eas build --profile development --platform all",
+    "eas:build:preview": "eas build --profile preview --platform all",
+    "eas:build:prod": "eas build --profile production --platform all",
+    "eas:submit": "eas submit --profile production --platform all --latest"
   },
   "dependencies": {
     "@maplibre/maplibre-react-native": "10.4.2",

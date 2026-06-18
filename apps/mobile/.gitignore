@@ -1,3 +1,4 @@
 .expo/
 dist/
 web-build/
+store/google-play-service-account.json
