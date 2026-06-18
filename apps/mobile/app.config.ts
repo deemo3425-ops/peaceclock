@@ -34,5 +34,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     eas: {
       projectId: 'pending',
     },
+    /**
+     * Deep link paths — resolved by src/navigation/linking.ts at runtime.
+     * peaceclock://c/ukraine/:date opens Counter; peaceclock://m/ukraine/:date opens Map.
+     */
+    linking: {
+      prefixes: ['peaceclock://'],
+      paths: {
+        counter: 'c/:theater/:date',
+        map: 'm/:theater/:date',
+      },
+    },
   },
 });
